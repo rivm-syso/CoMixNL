@@ -1,0 +1,3807 @@
+---
+title: "Analysis"
+author: "Laurens Bogaardt"
+date: "16/12/2020"
+output:
+  html_document:
+    df_print: paged
+    fig_width: 10
+    fig.align: "center"
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: united
+    code_folding: show
+---
+
+## Setup
+
+First, we will need to load some packages.
+
+```{r results = FALSE, message = FALSE, warning = FALSE}
+library(lubridate)
+library(qs)
+library(nlme)
+library(tidyverse)
+library(jsonlite)
+library(cbsodataR)
+library(stringi)
+library(strapgod) # Install via install.packages("https://cran.microsoft.com/snapshot/2020-04-20/bin/windows/contrib/3.6/strapgod_0.0.4.zip", repos = NULL, force = TRUE). Requires older package for vctrs_3.6, install this first via install.packages("https://cran.microsoft.com/snapshot/2021-01-01/src/contrib/vctrs_0.3.6.tar.gz", repos = NULL, force = TRUE).
+```
+
+## Background
+
+Text
+
+## Data Loading
+
+Text
+
+```{r}
+participant_data <- qread("part_cleaned.qs")
+# household_data <- read_rds("household_data.rds")
+contact_data <- qread("contacts_cleaned.qs")
+```
+
+Text
+
+## Explore Data
+
+Text
+
+```{r}
+dates_of_waves <- contact_data %>%
+  group_by(wave) %>%
+  summarise(date = mean.Date(date, na.rm = TRUE), .groups = "drop")
+dates_of_waves
+```
+
+Text
+
+```{r}
+number_of_respondents_per_wave_per_age <- participant_data %>%
+  mutate(total = length(part_id)) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  summarise(
+    n = length(part_id), proportion = length(part_id) / mean(total),
+    .groups = "drop"
+  ) %>% 
+  left_join(dates_of_waves, by = 'wave')
+number_of_respondents_per_wave_per_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = n,
+    group = interaction(series, part_age_group_65),
+    col = part_age_group_65
+  ),
+  data = number_of_respondents_per_wave_per_age
+) + 
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "Datum",
+    y = "Aantal respondenten",
+    title = "Aantal respondenten per leeftijdsgroep",
+    col = "Leeftijd"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+```{r}
+double_location_grid <- contact_data %>%
+  filter(survey_round - max(survey_round) > -5) %>%
+  rowwise() %>%
+  filter(
+    sum(
+      c(
+        cnt_bar_rest,
+        cnt_health_facility,
+        cnt_home,
+        cnt_other_house,
+        cnt_other_place,
+        cnt_outside_other,
+        cnt_public_transport,
+        cnt_salon,
+        cnt_school,
+        cnt_shop,
+        cnt_sport,
+        cnt_supermarket,
+        cnt_work,
+        cnt_worship
+      ),
+      na.rm = TRUE
+    ) == 2
+  ) %>%
+  mutate(
+    first_location = first(c(
+        "cnt_bar_rest",
+        "cnt_health_facility",
+        "cnt_home",
+        "cnt_other_house",
+        "cnt_other_place",
+        "cnt_outside_other",
+        "cnt_public_transport",
+        "cnt_salon",
+        "cnt_school",
+        "cnt_shop",
+        "cnt_sport",
+        "cnt_supermarket",
+        "cnt_work",
+        "cnt_worship"
+      )[c(
+        cnt_bar_rest,
+        cnt_health_facility,
+        cnt_home,
+        cnt_other_house,
+        cnt_other_place,
+        cnt_outside_other,
+        cnt_public_transport,
+        cnt_salon,
+        cnt_school,
+        cnt_shop,
+        cnt_sport,
+        cnt_supermarket,
+        cnt_work,
+        cnt_worship
+      ) == 1]),
+    second_location = first(setdiff(c(
+        "cnt_bar_rest",
+        "cnt_health_facility",
+        "cnt_home",
+        "cnt_other_house",
+        "cnt_other_place",
+        "cnt_outside_other",
+        "cnt_public_transport",
+        "cnt_salon",
+        "cnt_school",
+        "cnt_shop",
+        "cnt_sport",
+        "cnt_supermarket",
+        "cnt_work",
+        "cnt_worship"
+      )[c(
+        cnt_bar_rest,
+        cnt_health_facility,
+        cnt_home,
+        cnt_other_house,
+        cnt_other_place,
+        cnt_outside_other,
+        cnt_public_transport,
+        cnt_salon,
+        cnt_school,
+        cnt_shop,
+        cnt_sport,
+        cnt_supermarket,
+        cnt_work,
+        cnt_worship
+      ) == 1], first_location))
+  ) %>%
+  count(first_location, second_location)
+double_location_grid
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = first_location,
+    y = second_location,
+    fill = n
+  ),
+  data = double_location_grid
+) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  coord_equal() +
+  expand_limits(y = 0) +
+  labs(
+    x = "First location",
+    y = "Second location",
+    title = "Contacts with two locations"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+    )
+  )
+```
+
+Text
+
+## Workplace Status
+
+Text
+
+### Workplace Status Proportions by Wave
+
+Text
+
+```{r}
+clean_workplace_status_proportions_of_participants_by_wave <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed")
+  ) %>%
+  mutate(
+    workplace_status = ifelse(is.na(part_work_closed), part_workplace_status, part_work_closed),
+    workplace_status = recode(workplace_status, "closed" = "yes")
+  ) %>%
+  group_by(wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(wave, workplace_status) %>%
+  summarise(n = length(part_id), proportion_workplace_status = length(part_id) / mean(total), .groups = "drop") %>%
+  left_join(dates_of_waves, by = "wave")
+clean_workplace_status_proportions_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_workplace_status,
+    fill = factor(
+      workplace_status,
+      levels = c("yes", "no", "partially open", "Open")
+    )
+  ),
+  data = clean_workplace_status_proportions_of_participants_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Werkplaatsstatus per wave"
+  ) +
+  scale_fill_discrete(
+    name = "Werkplaatsstatus",
+    labels = c(
+      "Gesloten",
+      "Volledig of gedeeltelijk open",
+      "Gedeeltelijk open",
+      "Volledig open"
+    )
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Workplace Status Proportions by Wave and Age
+
+Text
+
+```{r}
+workplace_status_proportions_of_participants_by_wave_and_age <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed")
+  ) %>%
+  mutate(
+    workplace_status = ifelse(is.na(part_work_closed), part_workplace_status, part_work_closed),
+    workplace_status = recode(workplace_status, "closed" = "yes")
+  ) %>%
+  filter(!part_age_group_65 %in% c("[0,15)", "[65,Inf)")) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_proportion_workplace_closed = mean(workplace_status == "yes"),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.025),
+    median_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.5),
+    upper_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+workplace_status_proportions_of_participants_by_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_proportion_workplace_closed,
+    group = series
+  ),
+  data = workplace_status_proportions_of_participants_by_wave_and_age
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_proportion_workplace_closed,
+      ymax = upper_mean_proportion_workplace_closed
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  facet_wrap(~ part_age_group_65) + 
+  expand_limits(y = c(0, 1)) +
+    labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Gesloten werkplaats proportie per wave en leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Workplace Status Proportions by Wave and Employment Sector
+
+Text
+
+```{r}
+workplace_status_proportions_of_participants_by_wave_and_employment_sector <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed"),
+    grepl("Workers|Managers|Technicians", part_social_group1)
+  ) %>%
+  mutate(
+    workplace_status = ifelse(is.na(part_work_closed), part_workplace_status, part_work_closed),
+    workplace_status = recode(workplace_status, "closed" = "yes")
+  ) %>%
+  group_by(series, wave, part_social_group1) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_proportion_workplace_closed = mean(workplace_status == "yes"),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.025),
+    median_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.5),
+    upper_mean_proportion_workplace_closed = quantile(mean_proportion_workplace_closed, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+workplace_status_proportions_of_participants_by_wave_and_employment_sector
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_proportion_workplace_closed,
+    group = interaction(series, part_social_group1),
+    col = part_social_group1
+  ),
+  data = workplace_status_proportions_of_participants_by_wave_and_employment_sector
+) +
+  geom_line() +
+  expand_limits(y = 0) +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_proportion_workplace_closed,
+      ymax = upper_mean_proportion_workplace_closed,
+      fill = part_social_group1
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  labs(x = "Datum",
+       y = "Proportie",
+       title = "Gesloten werkplaats proportie per wave en werksector") +
+  scale_color_discrete(
+    name = "Werksector",
+    labels = c(
+      "Managers en\nprofessionals",
+      "Technici,\nbedienden,\ndienstverlenend personeel",
+      "Werknemers,\nelementaire beroepen en\nmilitair personeel"
+    )
+  ) +
+  scale_fill_discrete(
+    name = "Werksector",
+    labels = c(
+      "Managers en\nprofessionals",
+      "Technici,\nbedienden,\ndienstverlenend personeel",
+      "Werknemers,\nelementaire beroepen en\nmilitair personeel"
+    )
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Went to Work
+
+Text
+
+### Went to Work Proportions by Wave
+
+Text
+
+```{r}
+went_to_work_proportions_of_participants_by_wave <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed"),
+    part_attend_work_week %in% c("every day", "most days", "1-2 days"),
+    part_attend_work_yesterday %in% c("yes", "no"),
+    weekday %in% c("Monday", "Tueday", "Wednesday", "Thursday", "Friday")
+  ) %>%
+  group_by(series, wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(wave, part_attend_work_yesterday) %>%
+  summarise(n = length(part_id), proportion_went_to_work = length(part_id) / mean(total), .groups = "drop") %>%
+  left_join(dates_of_waves, by = "wave")
+went_to_work_proportions_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_went_to_work,
+    fill = part_attend_work_yesterday
+  ),
+  data = went_to_work_proportions_of_participants_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Ging naar werk proporties per wave"
+  ) + 
+  scale_fill_discrete(
+    name = "Ging naar werk",
+    labels = c("Nee", "Ja")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Workplace Status Proportions by Wave and Age
+
+Text
+
+```{r}
+went_to_work_proportions_of_participants_by_wave_and_age <- participant_data %>%
+  filter(
+    !part_age_group_65 %in% c("[0,15)", "[65,Inf)"),
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed"),
+    part_work_closed %in% c("yes") | part_workplace_status %in% c("Open", "partially open"),
+    part_attend_work_week %in% c("every day", "most days", "1-2 days"),
+    part_attend_work_yesterday %in% c("yes", "no"),
+    weekday %in% c("Monday", "Tueday", "Wednesday", "Thursday", "Friday")
+  ) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  summarise(
+    n = length(part_attend_work_yesterday),
+    proportion_went_to_work = mean(part_attend_work_yesterday == "yes"),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+went_to_work_proportions_of_participants_by_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_went_to_work,
+    col = part_age_group_65,
+    group = interaction(series, part_age_group_65)
+  ),
+  data = went_to_work_proportions_of_participants_by_wave_and_age
+) +
+  geom_line() +
+  geom_point() +
+  expand_limits(y = 0) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Ging naar werk proportie per wave en leeftijd",
+    col = "Leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Furlough
+
+Q3d. Heeft u momenteel geen werk wegens coronamaatregelen?
+
+### Furlough Proportions by Wave
+
+Text
+
+```{r}
+furlough_status_proportions_of_participants_by_wave <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)"),
+    part_furloughed %in% c("yes", "no")
+  ) %>%
+  group_by(series, wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(series, wave, part_furloughed) %>%
+  summarise(
+    n = length(part_id),
+    proportion_furlough_status = length(part_id) / mean(total),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+furlough_status_proportions_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_furlough_status,
+    fill = part_furloughed,
+    group = interaction(series, part_furloughed)
+  ),
+  data = furlough_status_proportions_of_participants_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Geen werk wegens coronamaatregelen per wave"
+  ) +
+  scale_fill_discrete(
+    name = "Werkstatus",
+    labels = c("Aan het werk", "Geen werk")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Furlough Proportions by Wave and Age
+
+Text
+
+```{r}
+furlough_status_proportions_of_participants_by_wave_and_age <- participant_data %>%
+  filter(
+    !part_age_group_65 %in% c("[0,15)", "[65,Inf)"),
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)"),
+    part_furloughed %in% c("yes", "no")
+  ) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  summarise(
+    n = length(part_id),
+    proportion_furloughed = mean(part_furloughed == "yes"),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+furlough_status_proportions_of_participants_by_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_furloughed,
+    col = part_age_group_65,
+    group = interaction(series, part_age_group_65)
+  ),
+  data = furlough_status_proportions_of_participants_by_wave_and_age
+) +
+  geom_line() +
+  geom_point() +
+  expand_limits(y = 0) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Geen werk wegens coronamaatregelen per wave en leeftijd",
+    col = "Leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Mean Days Worked
+
+Text
+
+### Employment Status Proportions by Wave
+
+Text
+
+```{r}
+work_type_proportions_of_participants_by_wave <- participant_data %>%
+  filter(
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)", "self employed")
+  ) %>%
+  group_by(series, wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(wave, employment_status = part_employstatus) %>%
+  summarise(
+    n = length(part_id),
+    proportion_employment_status = length(part_id) / mean(total),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+work_type_proportions_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_employment_status,
+    fill = employment_status
+  ),
+  data = work_type_proportions_of_participants_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Werktype proporties per wave"
+  ) + 
+  scale_fill_discrete(
+    name = "Werktype",
+    labels = c("Fulltime in dienst", "Parttime in dienst", "Zelfstandig")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Days Worked of Participants by Wave
+
+Text
+
+```{r}
+mean_days_worked_of_participants_by_wave <- participant_data %>%
+  filter(
+    series > 1,
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed")
+  ) %>%
+  mutate(
+    days_worked = c(
+      "every day" = 5,
+      "most days" = 4,
+      "1-2 days" = 1.5,
+      "no days - absent" = 0,
+      "no days - wfh" = 0,
+      "unknown" = NA
+    )[part_attend_work_week]
+  ) %>%
+  group_by(series, wave) %>%
+  summarise(
+    n = length(days_worked),
+    mean_days_worked = mean(days_worked, na.rm = TRUE),
+    proportion_week_worked = mean(days_worked, na.rm = TRUE) / 5,
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_days_worked_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_week_worked,
+    group = series
+  ),
+  data = mean_days_worked_of_participants_by_wave
+) +
+  geom_line() +
+  geom_point() +
+  expand_limits(y = c(0, 1)) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Werken op werk proportie per wave",
+    col = "Leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Days Worked by Wave and Age
+
+Text
+
+```{r}
+mean_days_worked_of_participants_by_wave_and_age <- participant_data %>%
+  filter(
+    series > 1,
+    part_employstatus %in% c("employed full-time (34 hours or more)", "employed part-time (less than 34 hours)"),
+    part_work_closed %in% c("yes", "no") | part_workplace_status %in% c("Open", "partially open", "closed")
+  ) %>%
+  mutate(
+    days_worked = c(
+      "every day" = 5,
+      "most days" = 4,
+      "1-2 days" = 1.5,
+      "no days - absent" = 0,
+      "no days - wfh" = 0,
+      "unknown" = NA
+    )[part_attend_work_week]
+  ) %>%
+  filter(
+    !part_age_group_65 %in% c("[0,15)", "[65,Inf)")
+  ) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  summarise(
+    n = length(days_worked),
+    mean_days_worked = mean(days_worked, na.rm = TRUE),
+    proportion_week_worked = mean(days_worked, na.rm = TRUE) / 5,
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_days_worked_of_participants_by_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_week_worked,
+    col = part_age_group_65
+  ),
+  data = mean_days_worked_of_participants_by_wave_and_age
+) +
+  geom_line() +
+  geom_point() +
+  expand_limits(y = c(0, 1)) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Werken op werk proportie per wave en leeftijd",
+    col = "Leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Vaccination
+
+Text
+
+### Vaccination Proportions by Wave
+
+Text
+
+```{r}
+vaccination_proportions_of_participants_by_wave <- participant_data %>%
+  filter(series > 1) %>%
+  group_by(series, wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(series, wave, part_vacc) %>%
+  summarise(
+    n = length(part_id),
+    proportion_vaccinated = length(part_id) / mean(total),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+vaccination_proportions_of_participants_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion_vaccinated,
+    fill = as.factor(part_vacc),
+    group = interaction(series, part_vacc)
+  ),
+  data = vaccination_proportions_of_participants_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Proportie gevaccineerden per wave"
+  ) +
+  scale_fill_discrete(
+    name = "Gevaccineerd",
+    labels = c("Nee", "Ja")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Vaccination Proportions by Wave and Age
+
+Text
+
+```{r}
+vaccination_proportions_of_participants_by_wave_and_age <- participant_data %>%
+  group_by(series, wave, part_age_group_65) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_proportion_vaccinated = mean(part_vacc),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_proportion_vaccinated = quantile(mean_proportion_vaccinated, 0.025),
+    median_mean_proportion_vaccinated = quantile(mean_proportion_vaccinated, 0.5),
+    upper_mean_proportion_vaccinated = quantile(mean_proportion_vaccinated, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+vaccination_proportions_of_participants_by_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_proportion_vaccinated,
+    col = part_age_group_65,
+    fill = part_age_group_65,
+    group = interaction(series, part_age_group_65)
+  ),
+  data = vaccination_proportions_of_participants_by_wave_and_age
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_proportion_vaccinated,
+      ymax = upper_mean_proportion_vaccinated
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) + 
+  expand_limits(y = 0) + 
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Proportie gevaccineerden per wave and leeftijd",
+    col = "Leeftijd",
+    fill = "Leeftijd"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Leisure
+
+Text
+
+### Visits events / locations in the last seven days 
+
+```{r}
+leisure_visits <- bind_rows(
+  participant_data %>%
+    drop_na(part_visit_pub_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_pub_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "pub/bar of cafe"),
+  participant_data %>%
+    drop_na(part_visit_restaurant_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_restaurant_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "restaurant"),
+  participant_data %>%
+    drop_na(part_visit_cinema_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_cinema_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "bioscoop"),
+  participant_data %>%
+    drop_na(part_visit_supermarket_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_supermarket_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "supermarkt of levensmiddelen winkel"),
+  participant_data %>%
+    drop_na(part_visit_sportevent_participant_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_sportevent_participant_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "sport evenement (als deelnemer)"),
+  participant_data %>%
+    drop_na(part_visit_sportevent_attendee_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_sportevent_attendee_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "sport evenement (als toeschouwer)"),
+  participant_data %>%
+    drop_na(part_visit_religious_event_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_religious_event_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "religieuze bijeenkomst"),
+  participant_data %>%
+    drop_na(part_visit_indoor_event_over_100_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_indoor_event_over_100_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "binnen locatie, meer dan 100 aanwezigen"),
+  participant_data %>%
+    drop_na(part_visit_outdoor_event_over_100_int) %>%
+    mutate(
+      part_visit = recode(
+        part_visit_outdoor_event_over_100_int,
+        "did not visit or intend to visit" = "niet bezocht en geen intentie om te bezoeken",
+        "intended cancelled due to covid" = "intentie",
+        "intended cancelled not covid" = "intentie",
+        "intended did not reason covid" = "intentie",
+        "visited" = "bezocht"
+      )
+    ) %>%
+    group_by(wave, part_visit) %>%
+    summarise(n = n(), .groups = "drop_last") %>%
+    mutate(prop = n / sum(n)) %>%
+    mutate(location = "buiten locatie, met meer dan 100 aanwezigen")
+) %>% 
+  left_join(dates_of_waves, by = "wave")
+leisure_visits
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(x = date, y = prop, fill = str_wrap(part_visit, 20)),
+  data = leisure_visits
+) + 
+  geom_bar(stat = "identity", position = "stack") + 
+  ylim(0, 1) + 
+  facet_wrap(~ location, ncol = 3, labeller = labeller(location = label_wrap_gen(25))) + 
+  labs(
+    x = "Wave",
+    y = "Aandeel van participanten",
+    title = "Aandeel participanten dat locatie heeft bezocht \nin de afgelopen 7 dagen per wave"
+  ) + 
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+```
+
+## Unweighted Contacts
+
+Text
+
+### Number of Contacts
+
+Text
+
+```{r}
+number_of_contacts_by_wave_and_participant <- contact_data %>%
+  group_by(
+    series,
+    wave,
+    part_id
+  ) %>%
+  summarise(
+    number_of_contacts = n(),
+    number_of_contacts_individual = sum(cnt_mass == "individual"),
+    number_of_contacts_mass = sum(cnt_mass == "mass"),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    participant_data,
+    by = c("series", "wave", "part_id")
+  ) %>%
+  mutate(
+    number_of_contacts = ifelse(is.na(number_of_contacts), 0, number_of_contacts),
+    number_of_contacts_individual = ifelse(is.na(number_of_contacts_individual), 0, number_of_contacts_individual),
+    number_of_contacts_mass = ifelse(is.na(number_of_contacts_mass), 0, number_of_contacts_mass),
+    cnt_weekend = weekday %in% c("Saturday", "Sunday")
+  )
+head(number_of_contacts_by_wave_and_participant)
+```
+
+Text
+
+```{r}
+number_of_contacts_by_wave_participant_and_location <- contact_data %>%
+  group_by(
+    series,
+    wave,
+    part_id,
+    cnt_location
+  ) %>%
+  summarise(
+    number_of_contacts = n(),
+    number_of_contacts_individual = sum(cnt_mass == "individual"),
+    number_of_contacts_mass = sum(cnt_mass == "mass"),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    participant_data %>%
+      mutate(d = 1) %>%
+      full_join(
+        contact_data %>%
+          distinct(cnt_location) %>%
+          mutate(d = 1),
+        by = "d"
+      ) %>%
+      select(-d),
+    by = c("series", "wave", "part_id", "cnt_location")
+  ) %>%
+  mutate(
+    number_of_contacts = ifelse(is.na(number_of_contacts), 0, number_of_contacts),
+    number_of_contacts_individual = ifelse(is.na(number_of_contacts_individual), 0, number_of_contacts_individual),
+    number_of_contacts_mass = ifelse(is.na(number_of_contacts_mass), 0, number_of_contacts_mass),
+    cnt_weekend = weekday %in% c("Saturday", "Sunday")
+  )
+head(number_of_contacts_by_wave_participant_and_location)
+```
+
+Text
+
+### Unweighted Mean Contacts by Wave
+
+Text
+
+```{r}
+unweighted_number_of_contacts_per_wave <- number_of_contacts_by_wave_and_participant %>%
+  group_by(series, wave) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts), .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+unweighted_number_of_contacts_per_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = unweighted_number_of_contacts_per_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Unweighted mean contacts per person and its confidence interval"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Unweighted Mean Contacts by Wave and Weekend
+
+Text
+
+```{r}
+sample_weekend_proportion_by_wave <- number_of_contacts_by_wave_and_participant %>%
+  group_by(series, wave) %>%
+  bootstrapify(1000) %>%
+  summarise(weekend_proportion = sum(cnt_weekend) / length(cnt_weekend), .groups = "drop_last") %>%
+  summarise(
+    lower_weekend_proportion = quantile(weekend_proportion, 0.025),
+    median_weekend_proportion = quantile(weekend_proportion, 0.5),
+    upper_weekend_proportion = quantile(weekend_proportion, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+sample_weekend_proportion_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_weekend_proportion,
+    group = series
+  ),
+  data = sample_weekend_proportion_by_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_weekend_proportion,
+      ymax = upper_weekend_proportion
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  geom_hline(yintercept = 2 / 7) +
+  expand_limits(y = c(0, 1)) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Proportie van survey ingevuld m.b.t. het weekend"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+```{r}
+unweighted_number_of_contacts_per_wave_and_weekend <- number_of_contacts_by_wave_and_participant %>%
+  group_by(series, wave, cnt_weekend) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts), .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+unweighted_number_of_contacts_per_wave_and_weekend
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = cnt_weekend,
+    group = interaction(series, cnt_weekend)
+  ),
+  data = unweighted_number_of_contacts_per_wave_and_weekend
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      col = cnt_weekend
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Unweighted mean contacts per person and its confidence interval"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Population Data
+
+Text
+
+```{r}
+pop_data <- cbs_get_data(
+  id = "7461bev",
+  select = c("Perioden", "Leeftijd", "Geslacht", "BurgerlijkeStaat", "Bevolking_1"),
+  Perioden = paste0(2020,"JJ00"),
+  Leeftijd = c(10010, seq(from = 10100, to = 19800, by = 100), 22100) %>% as.character,
+  Geslacht = c("3000   ", "4000   "),
+  BurgerlijkeStaat = "T001019"
+) %>% 
+  transmute(
+    year = Perioden %>% str_replace_all(pattern = "JJ00", replacement = "") %>% as.integer,
+    gender = Geslacht %>% as.integer %>% factor(levels = c(3000, 4000), labels = c("M", "F")),
+    age = Leeftijd %>% factor(levels = c(10010, seq(from = 10100, to = 19800, by = 100), 22100), labels = 0:99) %>% as.character %>% as.integer,
+    population = as.integer(Bevolking_1)
+  )
+head(pop_data)
+```
+
+Text
+
+```{r}
+population_percentages <- pop_data %>%
+  mutate(
+    part_age_group_65 = cut(
+      age,
+      breaks = c(0, 12, 18, seq(25, 65, 10), Inf),
+      right = FALSE,
+      include.lowest = FALSE
+    ),
+    part_gender = gender,
+    population_percentage_by_sex_and_age = population / sum(population)
+  ) %>%
+  group_by(part_gender, part_age_group_65) %>%
+  summarise(
+    population_percentage_by_sex_and_age = sum(population_percentage_by_sex_and_age),
+    .groups = "drop"
+  ) %>%
+  group_by(part_gender) %>%
+  mutate(
+    population_percentage_by_sex = sum(population_percentage_by_sex_and_age)
+  ) %>%
+  group_by(part_age_group_65) %>%
+  mutate(
+    population_percentage_by_age = sum(population_percentage_by_sex_and_age)
+  ) %>%
+  ungroup()
+population_percentages
+```
+
+Text
+
+```{r}
+sample_population_percentages <- participant_data %>%
+  filter(!is.na(part_gender)) %>%
+  group_by(series, part_gender, part_age_group_65) %>%
+  summarise(population_percentage_by_sex_and_age = length(part_id), .groups = "drop") %>%
+  group_by(series) %>%
+  mutate(population_percentage_by_sex_and_age = population_percentage_by_sex_and_age / sum(population_percentage_by_sex_and_age)) %>%
+  ungroup()
+sample_population_percentages
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = part_age_group_65,
+    y = value,
+    fill = name
+  ),
+  data = population_percentages %>% full_join(sample_population_percentages, by = c("part_gender", "part_age_group_65")) %>% pivot_longer(c("population_percentage_by_sex_and_age.x", "population_percentage_by_sex_and_age.y"))
+) +
+  geom_bar(
+    stat = "identity",
+    position = "dodge"
+  ) +
+  facet_wrap(~ part_gender + series) +
+  labs(
+    x = "Leeftijdsgroep",
+    y = "Proportie",
+    title = "Populatie proporties per leeftijdsgroep"
+  ) + 
+  scale_fill_discrete(
+    name = "Werktype",
+    labels = c("Populatie", "Sample")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Add Sample Weights
+
+Text
+
+```{r}
+sample_weights <- participant_data %>%
+  left_join(
+    population_percentages,
+    by = c("part_gender", "part_age_group_65")
+  ) %>%
+  group_by(
+    wave
+  ) %>%
+  mutate(group_size = n()) %>%
+  group_by(
+    wave,
+    part_gender,
+    part_age_group_65
+  ) %>%
+  mutate(
+    sample_weight_by_sex_and_age = population_percentage_by_sex_and_age / n() * group_size
+  ) %>%
+  group_by(
+    wave,
+    part_gender
+  ) %>%
+  mutate(
+    sample_weight_by_sex = population_percentage_by_sex / n() * group_size
+  ) %>%
+  group_by(
+    wave,
+    part_age_group_65
+  ) %>%
+  mutate(
+    sample_weight_by_age = population_percentage_by_age / n() * group_size
+  ) %>%
+  ungroup() %>%
+  select(wave, part_id, sample_weight_by_sex_and_age, sample_weight_by_sex, sample_weight_by_age)
+head(sample_weights)
+```
+
+Text
+
+## Weighted Contacts
+
+Text
+
+### Mean Contacts by Wave and Different Weightings
+
+Text
+
+```{r}
+weighted_number_of_contacts_per_wave <-
+  number_of_contacts_by_wave_and_participant %>%
+  left_join(
+    sample_weights,
+    c("wave", "part_id")
+  ) %>%
+  group_by(series, wave) %>%
+  summarise(
+    mean_number_of_contacts_unweighted = mean(number_of_contacts),
+    mean_number_of_contacts_weighted_by_sex = weighted.mean(number_of_contacts, sample_weight_by_sex),
+    mean_number_of_contacts_weighted_by_age = weighted.mean(number_of_contacts, sample_weight_by_age),
+    mean_number_of_contacts_weighted_by_sex_and_age = weighted.mean(number_of_contacts, sample_weight_by_sex_and_age),
+    .groups = "drop_last"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+weighted_number_of_contacts_per_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = value,
+    col = name,
+    group = interaction(series, name)
+  ),
+  data = weighted_number_of_contacts_per_wave %>% pivot_longer(!c("series", "wave", "date"))
+) +
+  geom_line() +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person by different weightings"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Wave
+
+Text
+
+```{r}
+number_of_contacts_per_wave <-
+  number_of_contacts_by_wave_and_participant %>%
+  left_join(
+    sample_weights,
+    c("wave", "part_id")
+  ) %>%
+  group_by(series, wave) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = weighted.mean(number_of_contacts, sample_weight_by_sex_and_age),
+    group_size = n(),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+number_of_contacts_per_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = number_of_contacts_per_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Wave and Age
+
+Text
+
+```{r}
+number_of_contacts_per_wave_and_age <- number_of_contacts_by_wave_and_participant %>%
+  left_join(
+    sample_weights,
+    c("wave", "part_id")
+  ) %>%
+  group_by(series, wave, part_age_group_65) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = weighted.mean(number_of_contacts, sample_weight_by_sex_and_age),
+    group_size = n(),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+number_of_contacts_per_wave_and_age
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = number_of_contacts_per_wave_and_age %>% mutate(upper_mean_number_of_contacts = ifelse(upper_mean_number_of_contacts > 10, 10, upper_mean_number_of_contacts))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  facet_wrap(~ part_age_group_65) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Wave and Location
+
+Text
+
+```{r}
+mean_number_of_contacts_per_wave_and_location <- number_of_contacts_by_wave_participant_and_location %>%
+  left_join(
+    sample_weights,
+    c("wave", "part_id")
+  ) %>%
+  group_by(series, wave, cnt_location) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = weighted.mean(number_of_contacts, sample_weight_by_sex_and_age),
+    group_size = n(),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_number_of_contacts_per_wave_and_location
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = mean_number_of_contacts_per_wave_and_location %>% mutate(upper_mean_number_of_contacts = ifelse(upper_mean_number_of_contacts > 10, 10, upper_mean_number_of_contacts))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  facet_wrap(~ cnt_location) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Wave, Age and Location
+
+Text
+
+```{r}
+mean_number_of_contacts_by_wave_location_and_participant_age <- number_of_contacts_by_wave_participant_and_location %>%
+  left_join(
+    sample_weights,
+    c("wave", "part_id")
+  ) %>%
+  group_by(series, wave, part_age_group_65, cnt_location) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = weighted.mean(number_of_contacts, sample_weight_by_sex_and_age),
+    group_size = n(),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+head(mean_number_of_contacts_by_wave_location_and_participant_age)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_age_group_65,
+    group = interaction(series, part_age_group_65)
+  ),
+  data = mean_number_of_contacts_by_wave_location_and_participant_age
+) +
+  geom_line() +
+  # geom_ribbon(
+  #   mapping = aes(
+  #     ymin = lower_mean_number_of_contacts,
+  #     ymax = upper_mean_number_of_contacts,
+  #     fill = part_age_group_65
+  #   ),
+  #   linetype = 0,
+  #   alpha = 0.1
+  # ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person"# and its confidence interval"
+  ) +
+  facet_wrap(~ cnt_location, scales = "free") +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_age_group_65,
+    group = interaction(series, part_age_group_65)
+  ),
+  data = mean_number_of_contacts_by_wave_location_and_participant_age %>% filter(series > 1)
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_age_group_65
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  facet_wrap(~ cnt_location, scales = "free") +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(x = date,
+                y = median_mean_number_of_contacts,
+                group = series),
+  data = mean_number_of_contacts_by_wave_location_and_participant_age %>% mutate(
+    median_mean_number_of_contacts = ifelse(
+      median_mean_number_of_contacts > 10,
+      10,
+      median_mean_number_of_contacts
+    )
+  ) %>% mutate(
+    upper_mean_number_of_contacts = ifelse(
+      upper_mean_number_of_contacts > 10,
+      10,
+      upper_mean_number_of_contacts
+    )
+  )
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(ymin = lower_mean_number_of_contacts,
+                  ymax = upper_mean_number_of_contacts),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(x = "Date",
+       y = "Mean contacts per person",
+       title = "Mean contacts per person and its confidence interval") +
+  facet_grid(rows = vars(cnt_location), cols = vars(part_age_group_65)) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(x = date,
+                y = median_mean_number_of_contacts,
+                group = series),
+  data = mean_number_of_contacts_by_wave_location_and_participant_age %>% filter(series > 1) %>% mutate(
+    median_mean_number_of_contacts = ifelse(
+      median_mean_number_of_contacts > 10,
+      10,
+      median_mean_number_of_contacts
+    )
+  ) %>% mutate(
+    upper_mean_number_of_contacts = ifelse(
+      upper_mean_number_of_contacts > 10,
+      10,
+      upper_mean_number_of_contacts
+    )
+  )
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(ymin = lower_mean_number_of_contacts,
+                  ymax = upper_mean_number_of_contacts),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(x = "Date",
+       y = "Mean contacts per person",
+       title = "Mean contacts per person and its confidence interval") +
+  facet_grid(rows = vars(cnt_location), cols = vars(part_age_group_65)) +
+  theme_minimal()
+```
+
+Text
+
+### Combined Plot for Mean Contacts by Wave, Age and Location
+
+Text
+
+```{r}
+all_data <- number_of_contacts_per_wave %>%
+  mutate(cnt_location = "All", part_age_group_65 = "All") %>%
+  bind_rows(
+    number_of_contacts_per_wave_and_age %>%
+      mutate(cnt_location = "All")
+  ) %>%
+  bind_rows(
+    mean_number_of_contacts_per_wave_and_location %>%
+      mutate(part_age_group_65 = "All")
+  ) %>%
+  bind_rows(
+    mean_number_of_contacts_by_wave_location_and_participant_age
+  )
+head(all_data)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = all_data %>% mutate(median_mean_number_of_contacts = ifelse(median_mean_number_of_contacts > 10, 10, median_mean_number_of_contacts)) %>% mutate(upper_mean_number_of_contacts = ifelse(upper_mean_number_of_contacts > 10, 10, upper_mean_number_of_contacts))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  facet_grid(rows = vars(cnt_location), cols = vars(part_age_group_65)) +
+  theme_minimal()
+```
+
+Text
+
+## Contacts by Stratification
+
+Text
+
+### Mean Contacts by Wave and Employment Status
+
+Text
+
+```{r}
+mean_contacts_per_employment_status <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(
+    !cnt_weekend,
+    part_employstatus %in% c(
+      "employed full-time (34 hours or more)",
+      "employed part-time (less than 34 hours)",
+      "self employed"
+    )
+  ) %>%
+  group_by(series, wave, part_employstatus) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = mean(number_of_contacts),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_employment_status
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_employstatus,
+    group = interaction(series, part_employstatus)
+  ),
+  data = mean_contacts_per_employment_status
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_employstatus
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Datum",
+    y = "Aantal contacten",
+    title = "Aantal contacten per wave en werktype"
+  ) +
+  scale_color_discrete(
+    name = "Werktype",
+    labels = c("Fulltime in dienst", "Parttime in dienst", "Zelfstandig")
+  ) +
+  scale_fill_discrete(
+    name = "Werktype",
+    labels = c("Fulltime in dienst", "Parttime in dienst", "Zelfstandig")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contact by Wave and Work Status
+
+Text
+
+```{r}
+mean_contacts_by_wave_and_work_status <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(
+    !cnt_weekend,
+    part_employstatus %in% c(
+      "employed full-time (34 hours or more)",
+      "employed part-time (less than 34 hours)",
+      "self employed"
+    ),
+    part_work_closed %in% c("yes", "no")
+  ) %>%
+  group_by(series, wave, part_work_closed) %>%
+  bootstrapify(1000) %>%
+  summarise(
+    mean_number_of_contacts = mean(number_of_contacts),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_by_wave_and_work_status
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_work_closed,
+    group = interaction(series, part_work_closed)
+  ),
+  data = mean_contacts_by_wave_and_work_status
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_work_closed
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Datum",
+    y = "Aantal contacten",
+    title = "Aantal contacten per wave en werkstatus"
+  ) + 
+  scale_color_discrete(
+    name = "Werkstatus",
+    labels = c("Gesloten", "Volledig of gedeeltelijk open")
+  ) +
+  scale_fill_discrete(
+    name = "Werkstatus",
+    labels = c("Gesloten", "Volledig of gedeeltelijk open")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Proportion with Any Contact at Work
+
+Text
+
+```{r}
+proportion_with_any_contact_at_work_by_wave <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(
+    !cnt_weekend,
+    part_employstatus %in% c(
+        "employed full-time (34 hours or more)",
+        "employed part-time (less than 34 hours)",
+        "self employed"
+    ),
+    part_work_closed %in% c("no")
+  ) %>%
+  group_by(series, wave) %>%
+  mutate(
+    any_contact = number_of_contacts > 0,
+    total = length(part_id)
+  ) %>%
+  group_by(series, wave, any_contact) %>%
+  summarise(
+    n = length(part_id),
+    proportion = length(part_id) / mean(total),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+proportion_with_any_contact_at_work_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion,
+    fill = any_contact,
+    group = interaction(series, any_contact)
+  ),
+  data = proportion_with_any_contact_at_work_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Enig contact op werk per wave"
+  ) + 
+  scale_fill_discrete(
+    name = "Enig contact",
+    labels = c("Nee", "Ja")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contact at Work for Those with Any Contact by Wave
+
+Text
+
+```{r}
+mean_contacts_at_work_by_wave <- number_of_contacts_by_wave_participant_and_location %>%
+  filter(
+    !cnt_weekend,
+    part_employstatus %in% c(
+      "employed full-time (34 hours or more)",
+      "employed part-time (less than 34 hours)",
+      "self employed"
+    ),
+    part_work_closed %in% c("no"),
+    cnt_location == "Work",
+    number_of_contacts > 0
+  ) %>%
+  group_by(series, wave) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts), .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_at_work_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = mean_contacts_at_work_by_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Datum",
+    y = "Aantal contacten",
+    title = "Aantal contacten op werk voor degenen met enig contact per wave"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Household Size
+
+Text
+
+```{r}
+aantal_hh_per_grootte <- cbsodataR::cbs_get_data(id = '71486ned', Perioden = '2019JJ00',
+                               RegioS = 'NL01  ',
+                               LeeftijdReferentiepersoon = "10000") %>% 
+  select(c('Eenpersoonshuishouden_2',
+           'k_2Personen_24',
+           'k_3Personen_25',
+           'k_4Personen_26',
+           'k_5OfMeerPersonen_27'))
+
+# verwachte huishoudgrootte van willekeurig persoon
+mean_hhsize_pop <- tibble(period = 'Gemiddeld voor willekeurig persoon in 2019 (CBS)', 
+                          mean_household_size = sum(1:5 * (1:5 * aantal_hh_per_grootte / sum(1:5 * aantal_hh_per_grootte))))
+```
+
+Text 
+
+```{r}
+average_hhsize <- participant_data %>%
+  mutate(series = as.character(series)) %>% 
+  group_by(series, wave) %>%
+  summarise(
+    mean_hhsize_per_wave = mean(hh_size),
+    .groups = "drop_last"
+  ) %>%
+  summarise(
+    mean_household_size = mean(mean_hhsize_per_wave),
+    .groups = "drop"
+  ) %>%
+  rename(period = series) %>% 
+  bind_rows(mean_hhsize_pop) %>% 
+    mutate(period = as.factor(
+    c(
+      '1' = 'Serie 1',
+      '2' = 'Serie 2',
+      '3' = 'Serie 3',
+      'Gemiddeld voor willekeurig persoon in 2019 (CBS)' = 'Gemiddeld voor willekeurig persoon in 2019 (CBS)'
+    )
+  )[period])
+average_hhsize
+```
+
+Text 
+
+```{r}
+ggplot(
+  mapping = aes(x = period, y = mean_household_size),
+  data = average_hhsize
+) +
+  geom_bar(stat = 'identity', fill = "#01689b") + 
+  labs(
+    x = "Periode",
+    y = "Gemiddelde huishoudgrootte",
+    title = "Gemiddelde huishoudgrootte per serie en in bevolking 2019 (CBS)"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = hh_size,
+    y = ..prop..,
+    group = 1
+  ),
+  data = participant_data %>%
+    mutate(
+      hh_size = ifelse(hh_size > 5, 5, hh_size)
+    )
+) +
+  geom_bar(fill = "#01689b") +
+  facet_wrap(~ wave, ncol = 3) +
+  labs(
+    x = "Huishoud grootte (inclusief participant)",
+    y = "Proportie",
+    title = "Verdeling huishoudgrootte per wave"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+mean_contacts_per_househould_size_by_wave <- number_of_contacts_by_wave_and_participant %>%
+  mutate(
+    hh_size = ifelse(hh_size > 5, 5, hh_size)
+  ) %>%
+  group_by(series, wave, hh_size) %>%
+  bootstrapify(1000) %>% 
+  summarise(mean_number_of_contacts = mean(number_of_contacts), .groups = "drop_last") %>% 
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_househould_size_by_wave
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = mean_contacts_per_househould_size_by_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  facet_wrap(~ hh_size) + 
+  labs(
+    x = "Datum",
+    y = "Gemiddeld aantal contacten",
+    title = "Aantal contacten per huishoudgrootte en per wave"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Mean Contacts by Attitude
+
+Text
+
+```{r}
+mean_contacts_per_part_att_serious_by_wave <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(series > 1) %>%
+  filter(!is.na(part_att_serious)) %>%
+  mutate(
+    part_att_serious = recode(
+      part_att_serious,
+      "Strongly agree" = "In meer of mindere mate mee eens",
+      "Tend to agree" = "In meer of mindere mate mee eens",
+      "Tend to disagree" = "In meer of mindere mate mee oneens",
+      "Strongly disagree" = "In meer of mindere mate mee oneens",
+      "Neither agree nor disagree" = "Geen mening",
+      "Don’t know" = "Geen mening"
+    )
+  ) %>%
+  group_by(series, wave, part_att_serious) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts),
+            .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    number_of_contacts_by_wave_and_participant %>%
+      filter(series > 1) %>%
+      filter(!is.na(part_att_serious)) %>%
+      mutate(
+        part_att_serious = recode(
+          part_att_serious,
+          "Strongly agree" = "In meer of mindere mate mee eens",
+          "Tend to agree" = "In meer of mindere mate mee eens",
+          "Tend to disagree" = "In meer of mindere mate mee oneens",
+          "Strongly disagree" = "In meer of mindere mate mee oneens",
+          "Neither agree nor disagree" = "Geen mening",
+          "Don’t know" = "Geen mening"
+        )
+      ) %>%
+      group_by(series, wave) %>%
+      mutate(total = length(part_id)) %>%
+      group_by(series, wave, part_att_serious) %>%
+      summarise(
+        n = length(part_id),
+        proportion = n / mean(total),
+        .groups = "drop"
+      ),
+    by = c("series", "wave", "part_att_serious")
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_part_att_serious_by_wave
+
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = proportion,
+    fill = part_att_serious
+  ),
+  data = mean_contacts_per_part_att_serious_by_wave
+) +
+  geom_bar(
+    stat = "identity"
+  ) +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = "Coronavirus zou een serieuze ziekte voor mij zijn"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_att_serious
+  ),
+  data = mean_contacts_per_part_att_serious_by_wave %>% filter(!(part_att_serious %in% "Geen mening"))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_att_serious
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) + 
+  labs(
+    x = "Datum",
+    y = "Gemiddeld aantal contacten",
+    title = "Aantal contacten per antwoord op 'Coronavirus zou een serieuze ziekte voor mij zijn'"
+  ) +
+  scale_color_discrete(
+    name = "Antwoordcategorie",
+    labels = c("In meer of mindere mate mee eens", "In meer of mindere mate mee oneens")
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie",
+    labels = c("In meer of mindere mate mee eens", "In meer of mindere mate mee oneens")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+# mean_contacts_per_part_att_likely_by_wave <-
+#   number_of_contacts_by_wave_and_participant %>%
+#   filter(series > 1) %>%
+#   filter(!is.na(part_att_likely)) %>%
+#   mutate(
+#     part_att_likely = recode(
+#       part_att_likely,
+#       "Strongly agree" = "In meer of mindere mate mee eens",
+#       "Tend to agree" = "In meer of mindere mate mee eens",
+#       "Tend to disagree" = "In meer of mindere mate mee oneens",
+#       "Strongly disagree" = "In meer of mindere mate mee oneens",
+#       "Neither agree nor disagree" = "Geen mening",
+#       "Don’t know" = "Geen mening"
+#     )
+#   ) %>%
+#   group_by(series, wave, part_att_likely) %>%
+#   bootstrapify(1000) %>%
+#   summarise(mean_number_of_contacts = mean(number_of_contacts),
+#             .groups = "drop_last") %>%
+#   summarise(
+#     lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+#     median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+#     upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+#     .groups = "drop"
+#   ) %>%
+#   left_join(
+#     number_of_contacts_by_wave_and_participant %>%
+#       filter(series > 1) %>%
+#       filter(!is.na(part_att_likely)) %>%
+#       mutate(
+#         part_att_likely = recode(
+#           part_att_likely,
+#           "Strongly agree" = "In meer of mindere mate mee eens",
+#           "Tend to agree" = "In meer of mindere mate mee eens",
+#           "Tend to disagree" = "In meer of mindere mate mee oneens",
+#           "Strongly disagree" = "In meer of mindere mate mee oneens",
+#           "Neither agree nor disagree" = "Geen mening",
+#           "Don’t know" = "Geen mening"
+#         )
+#       ) %>%
+#       group_by(series, wave, part_att_likely) %>%
+#       count(part_att_likely),
+#     by = c("series", "wave", "part_att_likely")
+#   ) %>%
+#   left_join(dates_of_waves, by = "wave")
+# mean_contacts_per_part_att_likely_by_wave
+
+```
+
+Text
+
+```{r}
+# ggplot(mean_contacts_per_part_att_likely_by_wave,
+#        aes(x = date, fill = part_att_likely, y = n)) +
+#   geom_bar(position = "fill", stat = "identity") +
+#   labs(x = "Datum",
+#        y = "Proportie",
+#        title = "I am likely to catch coronavirus") +
+#   scale_fill_discrete(
+#     name = "Antwoordcategorie"
+#   ) + 
+#   theme_minimal()
+```
+
+Text
+
+```{r}
+# ggplot(
+#   mapping = aes(
+#     x = date,
+#     y = median_mean_number_of_contacts
+#   ),
+#   data = mean_contacts_per_part_att_likely_by_wave
+# ) +
+#   geom_line() +
+#   geom_ribbon(
+#     mapping = aes(
+#       ymin = lower_mean_number_of_contacts,
+#       ymax = upper_mean_number_of_contacts
+#     ),
+#     linetype = 0,
+#     alpha = 0.1
+#   ) +
+#   facet_wrap(~ part_att_likely) + 
+#   labs(
+#     x = "Datum",
+#     y = "Gemiddeld aantal contacten",
+#     title = "Aantal contacten per antwoord op 'I am likely to catch coronavirus'"
+#   ) +
+#   theme_minimal()
+```
+
+Text
+
+```{r}
+mean_contacts_per_part_att_spread_by_wave <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(series > 1) %>%
+  filter(!is.na(part_att_spread)) %>%
+  mutate(
+    part_att_spread = recode(
+      part_att_spread,
+      "Strongly agree" = "In meer of mindere mate mee eens",
+      "Tend to agree" = "In meer of mindere mate mee eens",
+      "Tend to disagree" = "In meer of mindere mate mee oneens",
+      "Strongly disagree" = "In meer of mindere mate mee oneens",
+      "Neither agree nor disagree" = "Geen mening",
+      "Don’t know" = "Geen mening"
+    )
+  ) %>%
+  group_by(series, wave, part_att_spread) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts),
+            .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    number_of_contacts_by_wave_and_participant %>%
+      filter(series > 1) %>%
+      filter(!is.na(part_att_spread)) %>%
+      mutate(
+        part_att_spread = recode(
+          part_att_spread,
+          "Strongly agree" = "In meer of mindere mate mee eens",
+          "Tend to agree" = "In meer of mindere mate mee eens",
+          "Tend to disagree" = "In meer of mindere mate mee oneens",
+          "Strongly disagree" = "In meer of mindere mate mee oneens",
+          "Neither agree nor disagree" = "Geen mening",
+          "Don’t know" = "Geen mening"
+        )
+      ) %>%
+      group_by(series, wave) %>%
+      mutate(total = length(part_id)) %>%
+      group_by(series, wave, part_att_spread) %>%
+      summarise(
+        n = length(part_id),
+        proportion = n / mean(total),
+        .groups = "drop"
+      ),
+    by = c("series", "wave", "part_att_spread")
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_part_att_spread_by_wave
+```
+
+Text
+
+```{r}
+ggplot(mean_contacts_per_part_att_spread_by_wave,
+       aes(x = date, fill = part_att_spread, y = proportion)) +
+  geom_bar(position = "fill", stat = "identity") +
+  labs(x = "Datum",
+       y = "Proportie",
+       title = "Ik maak me zorgen dat ik het coronavirus misschien doorgeef aan iemand \ndie een risicopatiënt is") +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) + 
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_att_spread
+  ),
+  data = mean_contacts_per_part_att_spread_by_wave %>% filter(!(part_att_spread %in% "Geen mening"))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_att_spread
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) + 
+  labs(
+    x = "Datum",
+    y = "Gemiddeld aantal contacten",
+    title = "Aantal contacten per antwoord op 'Ik maak me zorgen dat ik het coronavirus \nmisschien doorgeef aan iemand die een risicopatiënt is'"
+  ) +
+  scale_color_discrete(
+    name = "Antwoordcategorie",
+    labels = c("In meer of mindere mate mee eens", "In meer of mindere mate mee oneens")
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie",
+    labels = c("In meer of mindere mate mee eens", "In meer of mindere mate mee oneens")
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Participants in elevated risk group
+
+```{r}
+mean_contacts_per_risk_group_in_household <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(!is.na(part_high_risk)) %>%
+  mutate(
+    part_high_risk = recode(
+      part_high_risk,
+      "no" = "nee",
+      "yes" = "ja",
+      "no answer" = "zeg ik liever niet"
+    )
+  ) %>%
+  group_by(series, wave, part_high_risk) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts),
+            .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    number_of_contacts_by_wave_and_participant %>%
+      filter(!is.na(part_high_risk)) %>%
+      mutate(
+        part_high_risk = recode(
+          part_high_risk,
+          "no" = "nee",
+          "yes" = "ja",
+          "no answer" = "zeg ik liever niet"
+        )
+      ) %>%
+      group_by(series, wave) %>%
+      mutate(total = length(part_id)) %>%
+      group_by(series, wave, part_high_risk) %>%
+      summarise(
+        n = length(part_id),
+        proportion = n / mean(total),
+        .groups = "drop"
+      ),
+    by = c("series", "wave", "part_high_risk")
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_risk_group_in_household
+
+```
+
+Text 
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date, 
+    y = proportion, 
+    col = part_high_risk),
+  data = mean_contacts_per_risk_group_in_household
+) +
+  geom_line() +
+  expand_limits(y = 0) + 
+  labs(x = "Datum",
+       y = "Proportie",
+       title = "Behoort u of een ander lid van uw huishouden tot verhoogde risicogroep?") + 
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_high_risk
+  ),
+  data = mean_contacts_per_risk_group_in_household %>% filter(part_high_risk %in% c('ja', 'nee'))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_high_risk
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  labs(
+    x = "Datum",
+    y = "Gemiddeld aantal contacten",
+    title = "Aantal contacten per antwoord op 'Behoort u of een ander lid \nvan uw huishouden tot verhoogde risicogroep?'"
+  ) +
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+mean_contacts_per_participant_in_elevated_risk_group <-
+  number_of_contacts_by_wave_and_participant %>%
+  filter(!is.na(part_elevated_risk)) %>%
+  mutate(
+    part_elevated_risk = recode(
+      part_elevated_risk,
+      "No" = "nee",
+      "Yes" = "ja",
+      "Prefer not to answer" = "zeg ik liever niet"
+    )
+  ) %>%
+  group_by(series, wave, part_elevated_risk) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts),
+            .groups = "drop_last") %>%
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    number_of_contacts_by_wave_and_participant %>%
+      filter(!is.na(part_elevated_risk)) %>%
+      mutate(
+        part_elevated_risk = recode(
+          part_elevated_risk,
+          "No" = "nee",
+          "Yes" = "ja",
+          "Prefer not to answer" = "zeg ik liever niet"
+        )
+      ) %>%
+      group_by(series, wave) %>%
+      mutate(total = length(part_id)) %>%
+      group_by(series, wave, part_elevated_risk) %>%
+      summarise(
+        n = length(part_id),
+        proportion = n / mean(total),
+        .groups = "drop"
+      ),
+    by = c("series", "wave", "part_elevated_risk")
+  ) %>%
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_participant_in_elevated_risk_group
+```
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date, 
+    y = proportion, 
+    col = part_elevated_risk),
+  data = mean_contacts_per_participant_in_elevated_risk_group
+) +
+  geom_line() +
+  expand_limits(y = 0) + 
+  labs(x = "Datum",
+       y = "Proportie",
+       title = "Maakt participant deel uit van een verhoogde risicogroep?") + 
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+```
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    col = part_elevated_risk
+  ),
+  data = mean_contacts_per_participant_in_elevated_risk_group
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts,
+      fill = part_elevated_risk
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  labs(
+    x = "Datum",
+    y = "Gemiddeld aantal contacten",
+    title = "Aantal contacten per antwoord op 'Behoort u tot een verhoogde risicogroep?'"
+  ) +
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+
+```
+### Contacts with elevated risk group
+
+```{r}
+proportion_contacts_with_elevated_risk_group <- contact_data %>% 
+  filter(!is.na(elevated_risk_group)) %>%
+  mutate(
+      elevated_risk_group = recode(
+        elevated_risk_group,
+        "Don’t know" = "weet ik niet",
+        "I think not, but not completely sure" = "nee",
+        "I think so, not completely sure" = "ja",
+        "No" = "nee",
+        "Prefer not to answer" = "zeg ik liever niet",
+        "Yes" = "ja"
+      )
+  ) %>%
+  group_by(series, wave) %>%
+  mutate(total = length(part_id)) %>%
+  group_by(series, wave, elevated_risk_group) %>%
+  summarise(
+      n = length(part_id),
+      proportion_elevated_risk_group = n / mean(total),
+      .groups = "drop_last"
+      ) %>%
+  left_join(dates_of_waves, by = "wave")
+
+proportion_contacts_with_elevated_risk_group
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date, 
+    y = proportion_elevated_risk_group, 
+    col = elevated_risk_group),
+  data = proportion_contacts_with_elevated_risk_group
+) +
+  geom_line() +
+  expand_limits(y = 0) + 
+  labs(x = "Datum",
+       y = "Proportie",
+       title = "Maakt contact deel uit van een verhoogde risicogroep?") + 
+  scale_color_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  scale_fill_discrete(
+    name = "Antwoordcategorie"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Matrix participants and contact in elevated risk group
+
+Text
+
+```{r}
+number_of_contacts_by_wave_and_participant_and_elevated_risk <- contact_data %>% 
+  mutate(
+    elevated_risk_group = recode(
+      elevated_risk_group,
+        "Don’t know" = "weet ik niet",
+        "I think not, but not completely sure" = "nee",
+        "I think so, not completely sure" = "ja",
+        "No" = "nee",
+        "Prefer not to answer" = "zeg ik liever niet",
+        "Yes" = "ja"
+      )
+  ) %>% 
+  group_by(
+    series,
+    wave,
+    part_id,
+    elevated_risk_group) %>%
+  summarise(
+    number_of_contacts = length(part_id),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    participant_data %>%
+      mutate(part_elevated_risk = recode(
+        part_elevated_risk,
+        "No" = "nee",
+        "Yes" = "ja",
+        "Prefer not to answer" = "zeg ik liever niet"
+      )),
+    by = c("series", "wave", "part_id")
+  ) %>% 
+  dplyr::select(series, wave, part_id, part_elevated_risk, elevated_risk_group, number_of_contacts) %>% 
+  filter(series > 1)
+number_of_contacts_by_wave_and_participant_and_elevated_risk
+
+mean_contacts_per_participants_and_contacts_in_elevated_risk_group <- 
+  number_of_contacts_by_wave_and_participant_and_elevated_risk %>% 
+  filter(series > 1) %>%
+  filter(!is.na(elevated_risk_group)) %>%
+  group_by(series, wave, part_elevated_risk, elevated_risk_group) %>%
+  bootstrapify(1000) %>%
+  summarise(mean_number_of_contacts = mean(number_of_contacts),
+            .groups = "drop_last") %>% 
+  summarise(
+    lower_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.025),
+    median_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.5),
+    upper_mean_number_of_contacts = quantile(mean_number_of_contacts, 0.975),
+    .groups = "drop"
+  ) %>% 
+  left_join(dates_of_waves, by = "wave")
+mean_contacts_per_participants_and_contacts_in_elevated_risk_group
+```
+Text
+
+```{r}
+ggplot(
+  mapping = aes(x = date, y = median_mean_number_of_contacts),
+  data = mean_contacts_per_participants_and_contacts_in_elevated_risk_group %>%
+    filter(part_elevated_risk %in% c('ja', 'nee'))
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(ymin = lower_mean_number_of_contacts,
+                  ymax = upper_mean_number_of_contacts),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  facet_grid(part_elevated_risk ~ elevated_risk_group,
+             labeller = label_both) +
+  labs(title = "Gemiddeld aantal contacten met mensen in verhoogde risicogroep",
+       x = "Datum",
+       y = "Gemiddeld aantal contacten") +
+  theme_minimal()
+```
+
+Text
+
+## Precautions during Contacts
+
+Text
+
+### Physical Contact, Distance and Masks outside Houdeholds
+
+Text
+
+```{r}
+precautions_during_contacts_outside_household_by_wave <- contact_data %>%
+  filter(
+    series > 1,
+    cnt_mass == "individual",
+    !part_age_group_65 %in% c("[0,12)", "[12,18)"),
+    cnt_prec_prefer_not_to_say == 0,
+    cnt_household == 0
+  ) %>%
+  group_by(
+    series,
+    wave,
+    part_id
+  ) %>%
+  mutate(
+    total = n()
+  ) %>%
+  group_by(
+    series,
+    wave,
+    cnt_phys,
+    cnt_prec_1_and_half_m_plus,
+    cnt_prec_mask,
+    part_id
+  ) %>%
+  summarise(
+    fraction = n() / mean(total),
+    .groups = "drop_last"
+  ) %>%
+  right_join(
+    contact_data %>%
+      filter(
+        series > 1,
+        cnt_mass == "individual",
+        !part_age_group_65 %in% c("[0,12)", "[12,18)"),
+        cnt_prec_prefer_not_to_say == 0,
+        cnt_household == 0
+      ) %>%
+      group_by(
+        series,
+        wave
+      ) %>%
+      expand(
+        part_id,
+        nesting(
+          cnt_phys,
+          cnt_prec_1_and_half_m_plus
+        ),
+        cnt_prec_mask
+      ) %>%
+      ungroup(),
+    c("series", "wave", "part_id", "cnt_phys", "cnt_prec_1_and_half_m_plus", "cnt_prec_mask")
+  ) %>%
+  mutate(
+    fraction = ifelse(is.na(fraction), 0, fraction)
+  ) %>%
+  group_by(
+    series,
+    wave,
+    cnt_phys,
+    cnt_prec_1_and_half_m_plus,
+    cnt_prec_mask
+  ) %>%
+  summarise(
+    fraction = mean(fraction),
+    .groups = "drop"
+  ) %>% 
+  left_join(dates_of_waves, by = "wave")
+head(precautions_during_contacts_outside_household_by_wave)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = fraction,
+    fill = paste0(as.numeric(cnt_phys), as.numeric(cnt_prec_1_and_half_m_plus), as.numeric(cnt_prec_mask)) %>% 
+      factor(levels = c("011", "010", "001", "000", "101", "100"))
+  ),
+  data = precautions_during_contacts_outside_household_by_wave
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = NULL
+  ) +
+  scale_fill_discrete(
+    name = "Contact type",
+    labels = c("001" = "Conversational contact\nwith mask",
+      "011" = "Conversational contact\nwith mask and distance",
+      "010" = "Conversational contact\nwith distance",
+      "000" = "Conversational contact",
+      "101" = "Physical contact\nwith mask",
+      "100" = "Physical contact"
+    )
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### Physical Contact by Age
+
+Text
+
+```{r}
+precautions_during_contacts_outside_household_by_wave_and_age <- contact_data %>%
+  filter(
+    series > 1,
+    cnt_mass == "individual",
+    cnt_prec_prefer_not_to_say == 0,
+    cnt_household == 0
+  ) %>%
+  group_by(
+    series,
+    wave,
+    part_age_group_65,
+    part_id
+  ) %>%
+  mutate(
+    total = n()
+  ) %>%
+  group_by(
+    series,
+    wave,
+    part_age_group_65,
+    cnt_phys,
+    cnt_prec_1_and_half_m_plus,
+    cnt_prec_mask,
+    part_id
+  ) %>%
+  summarise(
+    fraction = n() / mean(total),
+    .groups = "drop_last"
+  ) %>%
+  right_join(
+    contact_data %>%
+      filter(
+        series > 1,
+        cnt_mass == "individual",
+        cnt_prec_prefer_not_to_say == 0,
+        cnt_household == 0
+      ) %>%
+      group_by(
+        series,
+        wave,
+        part_age_group_65
+      ) %>%
+      expand(
+        part_id,
+        nesting(
+          cnt_phys,
+          cnt_prec_1_and_half_m_plus
+        ),
+        cnt_prec_mask
+      ) %>%
+      ungroup(),
+    c("series", "wave", "part_age_group_65", "part_id", "cnt_phys", "cnt_prec_1_and_half_m_plus", "cnt_prec_mask")
+  ) %>%
+  mutate(
+    fraction = ifelse(is.na(fraction), 0, fraction)
+  ) %>%
+  group_by(
+    series,
+    wave,
+    part_age_group_65,
+    cnt_phys,
+    cnt_prec_1_and_half_m_plus,
+    cnt_prec_mask
+  ) %>%
+  summarise(
+    fraction = mean(fraction),
+    .groups = "drop"
+  ) %>% 
+  left_join(dates_of_waves, by = "wave")
+head(precautions_during_contacts_outside_household_by_wave_and_age)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = fraction,
+    fill = paste0(as.numeric(cnt_phys), as.numeric(cnt_prec_1_and_half_m_plus), as.numeric(cnt_prec_mask)) %>% 
+      factor(levels = c("011", "010", "001", "000", "101", "100"))
+  ),
+  data = precautions_during_contacts_outside_household_by_wave_and_age
+) +
+  geom_bar(stat = "identity") +
+  labs(
+    x = "Datum",
+    y = "Proportie",
+    title = NULL
+  ) +
+  scale_fill_discrete(
+    name = "Contact type",
+    labels = c("001" = "Conversational contact\nwith mask",
+      "011" = "Conversational contact\nwith mask and distance",
+      "010" = "Conversational contact\nwith distance",
+      "000" = "Conversational contact",
+      "101" = "Physical contact\nwith mask",
+      "100" = "Physical contact"
+    )
+  ) +
+  facet_wrap(~ part_age_group_65) +
+  theme_minimal()
+```
+
+Text
+
+## Contact Matrices
+
+Text
+
+### Overall
+
+Text
+
+```{r}
+number_of_contacts_by_wave_participant_age_and_contact_age <-
+  contact_data %>%
+  full_join(
+    participant_data,
+    by = c("wave", "part_id", "part_age_group_65")
+  ) %>%
+  inner_join(
+    number_of_contacts_by_wave_and_participant %>%
+      select(wave, part_id),
+    by = c("wave", "part_id")
+  ) %>%
+  group_by(
+    wave,
+    part_age_group_65
+  ) %>%
+  mutate(
+    group_size = n_distinct(part_id)
+  ) %>%
+  filter(
+    !is.na(cnt_age_group_65)
+  ) %>%
+  group_by(
+    wave,
+    part_age_group_65,
+    cnt_age_group_65
+  ) %>%
+  summarise(
+    group_size = mean(group_size),
+    sum_number_of_contacts = n(),
+    mean_number_of_contacts = n() / mean(group_size),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    contact_data %>%
+      distinct(wave, part_age_group_65) %>%
+      full_join(
+        contact_data %>%
+          distinct(cnt_age_group_65),
+        by = character()
+      ),
+    by = c("wave", "part_age_group_65", "cnt_age_group_65")
+  ) %>%
+  mutate(
+    mean_number_of_contacts = ifelse(is.na(mean_number_of_contacts), 0, mean_number_of_contacts)
+  )
+head(number_of_contacts_by_wave_participant_age_and_contact_age)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = part_age_group_65,
+    y = cnt_age_group_65,
+    fill = 0.01 + mean_number_of_contacts
+  ),
+  data = number_of_contacts_by_wave_participant_age_and_contact_age
+) +
+  geom_tile() +
+  scale_fill_viridis_c(
+    trans = "log",
+    breaks = c(0.02, 0.1, 0.5, 2, 5),
+    name = "number of contacts"
+  ) +
+  coord_equal() +
+  facet_wrap(~ wave) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Participant age",
+    y = "Contact age",
+    title = "Contact matrix per wave"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+    )
+  )
+```
+
+Text
+
+### By Location
+
+Text
+
+```{r}
+number_of_contacts_by_wave_participant_age_contact_age_and_location <-
+  contact_data %>%
+  full_join(
+    participant_data,
+    by = c("wave", "part_id", "part_age_group_75")
+  ) %>%
+  inner_join(
+    number_of_contacts_by_wave_and_participant %>%
+      select(wave, part_id),
+    by = c("wave", "part_id")
+  ) %>%
+  group_by(
+    wave,
+    part_age_group_75
+  ) %>%
+  mutate(
+    group_size = n_distinct(part_id)
+  ) %>%
+  filter(
+    !is.na(cnt_age_group_75)
+  ) %>%
+  group_by(
+    wave,
+    part_age_group_75,
+    cnt_age_group_75,
+    cnt_location
+  ) %>%
+  summarise(
+    group_size = mean(group_size),
+    sum_number_of_contacts = n(),
+    mean_number_of_contacts = n() / mean(group_size),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    contact_data %>%
+      distinct(wave, part_age_group_75) %>%
+      full_join(
+        contact_data %>%
+          distinct(cnt_age_group_75),
+        by = character()
+      ) %>%
+      full_join(
+        contact_data %>%
+          distinct(cnt_location),
+        by = character()
+      ),
+    by = c("wave", "part_age_group_75", "cnt_age_group_75", "cnt_location")
+  ) %>%
+  mutate(
+    mean_number_of_contacts = ifelse(is.na(mean_number_of_contacts), 0, mean_number_of_contacts)
+  )
+head(number_of_contacts_by_wave_participant_age_contact_age_and_location)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = part_age_group_75,
+    y = cnt_age_group_75,
+    fill = 0.0001 + mean_number_of_contacts
+  ),
+  data = number_of_contacts_by_wave_participant_age_contact_age_and_location
+) +
+  geom_tile() +
+  scale_fill_viridis_c(
+    trans = "log",
+    breaks = c(0.001, 0.01, 0.1, 0.5, 2),
+    name = "number of contacts"
+  ) +
+  coord_equal() +
+  facet_grid(vars(cnt_location), vars(wave)) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Participant age",
+    y = "Contact age",
+    title = "Contact matrix per wave"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+    )
+  )
+```
+
+Text
+
+### By Risk
+
+Text
+
+```{r}
+number_of_contacts_by_risk_participant_age_and_contact_age <- contact_data %>%
+  full_join(
+    participant_data,
+    by = c("wave", "part_id", "part_age_group_65")
+  ) %>%
+  inner_join(
+    number_of_contacts_by_wave_and_participant %>%
+      select(wave, part_id),
+    by = c("wave", "part_id")
+  ) %>%
+  mutate(
+    elevated_risk_group = recode(
+      elevated_risk_group,
+      "I think not, but not completely sure" = "No",
+      "I think so, not completely sure" = "Yes"
+    )
+  ) %>%
+  filter(
+    part_elevated_risk %in% c("Yes", "No"),
+    elevated_risk_group %in% c("Yes", "No"),
+    !is.na(cnt_age_group_65)
+  ) %>%
+  group_by(
+    part_elevated_risk,
+    part_age_group_65
+  ) %>%
+  mutate(
+    group_size = n_distinct(part_id)
+  ) %>%
+  group_by(
+    part_elevated_risk,
+    elevated_risk_group,
+    part_age_group_65,
+    cnt_age_group_65
+  ) %>%
+  summarise(
+    group_size = mean(group_size),
+    sum_number_of_contacts = n(),
+    mean_number_of_contacts = n() / mean(group_size),
+    .groups = "drop"
+  ) %>%
+  full_join(
+    contact_data %>%
+      distinct(part_age_group_65) %>%
+      full_join(
+        contact_data %>%
+          distinct(cnt_age_group_65),
+        by = character()
+      ),
+    by = c("part_age_group_65", "cnt_age_group_65")
+  ) %>%
+  mutate(
+    mean_number_of_contacts = ifelse(is.na(mean_number_of_contacts), 0, mean_number_of_contacts)
+  )
+head(number_of_contacts_by_risk_participant_age_and_contact_age)
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = part_age_group_65,
+    y = cnt_age_group_65,
+    fill = 0.01 + mean_number_of_contacts
+  ),
+  data = number_of_contacts_by_risk_participant_age_and_contact_age
+) +
+  geom_tile() +
+  scale_fill_viridis_c(
+    trans = "log",
+    breaks = c(0.02, 0.1, 0.5, 2, 5),
+    name = "Number of contacts"
+  ) +
+  coord_equal() +
+  facet_grid(
+    rows = vars(part_elevated_risk),
+    cols = vars(elevated_risk_group),
+    labeller = labeller(
+      part_elevated_risk = c("Yes" = "Participant at risk", "No" = "Particiant not at risk"),
+      elevated_risk_group = c("Yes" = "Contact at risk", "No" = "Contact not at risk")
+    )
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Participant age",
+    y = "Contact age",
+    title = "Contact matrix"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+    )
+  )
+```
+
+Text
+
+## Differential Contacts
+
+Text
+
+### Overall
+
+Text
+
+```{r}
+difference_in_number_of_contacts_by_wave_and_participant <- number_of_contacts_by_wave_and_participant %>%
+  mutate(wave = sprintf("Wave %02d-%02d", survey_round, survey_round + 1)) %>%
+  select(series, wave, part_id, number_of_contacts) %>%
+  inner_join(
+    number_of_contacts_by_wave_and_participant %>%
+      mutate(wave = sprintf("Wave %02d-%02d", survey_round - 1, survey_round)) %>%
+      select(series, wave, part_id, number_of_contacts),
+    by = c("series", "wave", "part_id")
+  ) %>%
+  mutate(
+    difference_in_number_of_contacts = number_of_contacts.y - number_of_contacts.x
+  )
+head(difference_in_number_of_contacts_by_wave_and_participant)
+```
+
+Text
+
+```{r}
+ggplot(
+  data = difference_in_number_of_contacts_by_wave_and_participant
+) +
+  geom_density(
+    mapping = aes(
+      x = difference_in_number_of_contacts,
+      fill = wave
+    ),
+    alpha = 0.2,
+    bw = 0.5
+  ) +
+  xlim(c(-6, 6)) +
+  labs(
+    x = "Verschil",
+    y = "Probability density",
+    title = "Ging naar werk proporties per wave"
+  ) + 
+  # scale_fill_discrete(
+  #   name = "Ging naar werk",
+  #   labels = c("Nee", "Ja")
+  # ) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+ggplot(
+  data = difference_in_number_of_contacts_by_wave_and_participant
+) +
+  stat_count(
+    mapping = aes(
+      x = difference_in_number_of_contacts,
+      y = ..prop..,
+      fill = wave
+    ),
+    alpha = 0.5
+  ) +
+  facet_wrap(~ wave) +
+  xlim(c(-10, 10)) +
+  labs(
+    x = "Verschil",
+    y = "Probability density",
+    title = "Verschil in aantal contacten tussen twee waves"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### By Location
+
+Text
+
+```{r}
+difference_in_number_of_contacts_by_wave_participant_and_location <- number_of_contacts_by_wave_participant_and_location %>%
+  mutate(wave = sprintf("Wave %02d-%02d", survey_round, survey_round + 1)) %>%
+  select(series, wave, cnt_location, part_id, number_of_contacts) %>%
+  inner_join(
+    number_of_contacts_by_wave_participant_and_location %>%
+      mutate(wave = sprintf("Wave %02d-%02d", survey_round - 1, survey_round)) %>%
+      select(series, wave, cnt_location, part_id, number_of_contacts),
+    by = c("series", "wave", "part_id", "cnt_location")
+  ) %>%
+  mutate(
+    difference_in_number_of_contacts = number_of_contacts.y - number_of_contacts.x
+  )
+head(difference_in_number_of_contacts_by_wave_participant_and_location)
+```
+
+Text
+
+```{r}
+ggplot(
+  data = difference_in_number_of_contacts_by_wave_participant_and_location
+) +
+  geom_density(
+    mapping = aes(
+      x = difference_in_number_of_contacts,
+      fill = wave
+    ),
+    alpha = 0.2,
+    bw = 0.5
+  ) +
+  xlim(c(-6, 6)) +
+  facet_wrap(~ cnt_location) +
+  labs(
+    x = "Verschil",
+    y = "Probability density",
+    title = "Verschil in aantal contacten tussen twee waves"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+### By School and Age
+
+Text
+
+```{r}
+difference_in_number_of_contacts_by_wave_participant_at_school <- number_of_contacts_by_wave_participant_and_location %>%
+  filter(
+    cnt_location == "School",
+    part_age_group_65 %in% c("[0,12)", "[12,18)")
+  ) %>%
+  mutate(wave = sprintf("Wave %02d-%02d", survey_round, survey_round + 1)) %>%
+  select(series, wave, cnt_location, part_id, part_age_group_65, number_of_contacts) %>%
+  inner_join(
+    number_of_contacts_by_wave_participant_and_location %>%
+      mutate(wave = sprintf("Wave %02d-%02d", survey_round - 1, survey_round)) %>%
+      select(series, wave, cnt_location, part_id, number_of_contacts),
+    by = c("series", "wave", "part_id", "cnt_location")
+  ) %>%
+  mutate(
+    difference_in_number_of_contacts = number_of_contacts.y - number_of_contacts.x
+  )
+head(difference_in_number_of_contacts_by_wave_participant_at_school)
+```
+
+Text
+
+```{r}
+ggplot(
+  data = difference_in_number_of_contacts_by_wave_participant_at_school
+) +
+  geom_density(
+    mapping = aes(
+      x = difference_in_number_of_contacts,
+      fill = part_age_group_65
+    ),
+    alpha = 0.2,
+    bw = 0.5
+  ) +
+  xlim(c(-6, 6)) +
+  facet_wrap(~ wave) +
+  labs(
+    x = "Verschil",
+    y = "Probability density",
+    title = "Verschil in aantal contacten tussen twee waves"
+  ) +
+  theme_minimal()
+```
+
+### Leisure contacts
+
+```{r}
+ggplot(data = difference_in_number_of_contacts_by_wave_participant_and_location %>% filter(cnt_location == "Leisure")) +
+  stat_count(
+    mapping = aes(x = difference_in_number_of_contacts,
+                  y = ..prop..,
+                  fill = wave),
+    alpha = 0.5,
+    binwidth = 1
+  ) +
+  facet_wrap( ~ wave) +
+  xlim(c(-6, 6)) +
+  labs(x = "Verschil",
+       y = "Probability density",
+       title = "Verschil in aantal leisure contacten tussen twee waves") +
+  theme_minimal()
+```
+
+Text
+
+## Reproduction Number
+
+Text
+
+```{r}
+reproduction.json <- read_json("https://data.rivm.nl/covid-19/COVID-19_reproductiegetal.json")
+reproduction.table <- tibble(
+  date = sapply(reproduction.json, function(x){x[["Date"]]}),
+  reproduction = as.numeric(sapply(reproduction.json, function(x){gsub("NULL", NA, x[["Rt_avg"]])}))
+)
+reproduction.table
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = number_of_contacts_per_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  geom_line(
+    mapping = aes(
+      x = as.Date(date),
+      y = 5 * reproduction,
+      group = 1
+    ),
+    data = reproduction.table
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+## Stringency
+
+Text
+
+```{r}
+stringency.json <- read_json("https://covidtrackerapi.bsg.ox.ac.uk/api/v2/stringency/date-range/2020-03-15/2021-10-10")
+stringency.data <- tibble(
+  date = as.Date(names(stringency.json[["data"]])),
+  stringency = sapply(stringency.json[["data"]], function(x){x[["NLD"]][["stringency"]]})
+)
+stringency.data
+```
+
+Text
+
+```{r}
+ggplot(
+  mapping = aes(
+    x = date,
+    y = median_mean_number_of_contacts,
+    group = series
+  ),
+  data = number_of_contacts_per_wave
+) +
+  geom_line() +
+  geom_ribbon(
+    mapping = aes(
+      ymin = lower_mean_number_of_contacts,
+      ymax = upper_mean_number_of_contacts
+    ),
+    linetype = 0,
+    alpha = 0.1
+  ) +
+  geom_line(
+    mapping = aes(
+      x = date,
+      y = stringency / 10,
+      group = 1
+    ),
+    data = stringency.data
+  ) +
+  expand_limits(y = 0) +
+  labs(
+    x = "Date",
+    y = "Mean contacts per person",
+    title = "Mean contacts per person and its confidence interval"
+  ) +
+  theme_minimal()
+```
+
+Text
+
+```{r}
+summary(
+  lme(
+    fixed = number_of_contacts ~ 1 + stringency + stringency:part_age + stringency:time,# + stringency:part_age:time,
+    random = ~ 1 | part_id,
+    data = number_of_contacts_by_wave_and_participant %>%
+      left_join(
+        sample_weights,
+        c("wave", "part_id")
+      ) %>%
+      left_join(
+        stringency.data,
+        by = "date"
+      ) %>%
+      mutate(time = (date - as.Date("2020-03-15")) / 365.25)#,
+    #weights = sample_weight_by_sex_and_age
+  )
+)
+```
+
+Text
