@@ -141,99 +141,99 @@ household_data <- household_common %>%
 
 Text
 
-# ```{r}
-# participant_data <- qread("part_preclean.qs")
-# participant_data <- participant_data %>%
-#   mutate(part_gender = toupper(substr(part_gender, 1, 1)))
-# contact_data <- qread("contacts_preclean.qs")
-# household_data <- qread("household_preclean.qs")
-# ```
-# 
-# Text
-# 
-# ```{r}
-# participant_data %>% nrow()
-# participant_data2 %>% nrow()
-# contact_data %>% nrow()
-# contact_data2 %>% nrow()
-# household_data %>% nrow()
-# household_data2 %>% nrow()
-# ```
-# 
-# ```{r}
-# participant_data %>% ncol()
-# participant_data2 %>% ncol()
-# contact_data %>% ncol()
-# contact_data2 %>% ncol()
-# household_data %>% ncol()
-# household_data2 %>% ncol()
-# ```
-# 
-# ```{r}
-# contact_data %>%
-#   select(survey_round, part_id, starts_with("cnt_age")) %>%
-#   bind_cols(
-#     contact_data2 %>%
-#       select(survey_round, part_id, cont_id, starts_with("cnt_age"))
-#   )
-# ```
-# 
-# ```{r}
-# contact_data %>%
-#   select(cnt_age) %>%
-#   bind_cols(
-#     contact_data2 %>%
-#       mutate(cnt_age2 = paste0(cnt_age_est_min, "-", cnt_age_est_max)) %>%
-#       select(cnt_age2)
-#   ) %>%
-#   count(cnt_age, cnt_age2)
-# ```
-# 
-# ```{r}
-# contact_data <- contact_data %>%
-#   group_by(wave, part_id) %>%
-#   mutate(cont_id = seq(n())) %>%
-#   rowwise() %>%
-#   mutate(
-#     cnt_otherplace = sum(c(
-#       cnt_outside_other,
-#       cnt_public_market,
-#       cnt_other_house,
-#       cnt_worship,
-#       cnt_supermarket,
-#       cnt_shop
-#     ), na.rm = T) > 0
-#   ) %>%
-#   ungroup() %>%
-#   mutate(
-#     cnt_transport = cnt_public_transport,
-#     cnt_leisure = cnt_sport,
-#     cnt_home = ifelse(is.na(cnt_home), 0, cnt_home),
-#     cnt_work = ifelse(is.na(cnt_work), 0, cnt_work),
-#     cnt_school = ifelse(is.na(cnt_school), 0, cnt_school),
-#     cnt_transport = ifelse(is.na(cnt_transport), 0, cnt_transport),
-#     cnt_leisure = ifelse(is.na(cnt_leisure), 0, cnt_leisure),
-#     cnt_otherplace = ifelse(is.na(cnt_otherplace), 0, cnt_otherplace)
-#   )
-# ```
-# 
-# 
-# ```{r}
-# contact_data %>%
-#   select(survey_round, part_id, cont_id, cnt_health_facility, cnt_shop, cnt_supermarket, cnt_other_place, cnt_other_house, cnt_outside_other, cnt_public_market, cnt_salon, cnt_leisure, cnt_bar_rest, cnt_worship, cnt_transport, cnt_school, cnt_work, cnt_home, cnt_household, cnt_inside, cnt_outside, cnt_otherplace, cnt_other_place) %>%
-#   pivot_longer(!c(survey_round, part_id, cont_id)) %>%
-#   full_join(
-#     contact_data2 %>%
-#       group_by(survey_round, part_id) %>%
-#       mutate(cont_id = seq(n())) %>%
-#       ungroup() %>%
-#       select(survey_round, part_id, cont_id, cnt_health_facility, cnt_shop, cnt_supermarket, cnt_other_place, cnt_other_house, cnt_outside_other, cnt_public_market, cnt_salon, cnt_leisure, cnt_bar_rest, cnt_worship, cnt_transport, cnt_school, cnt_work, cnt_home, cnt_household, cnt_inside, cnt_outside, cnt_otherplace, cnt_other_place) %>%
-#       pivot_longer(!c(survey_round, part_id, cont_id)),
-#     by = c("survey_round", "part_id", "cont_id", "name")
-#   ) %>%
-#   filter(value.x != value.y) %>%
-#   count(name, value.x, value.y)
-# ```
+<!-- # ```{r} -->
+<!-- # participant_data <- qread("part_preclean.qs") -->
+<!-- # participant_data <- participant_data %>% -->
+<!-- #   mutate(part_gender = toupper(substr(part_gender, 1, 1))) -->
+<!-- # contact_data <- qread("contacts_preclean.qs") -->
+<!-- # household_data <- qread("household_preclean.qs") -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # Text -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # participant_data %>% nrow() -->
+<!-- # participant_data2 %>% nrow() -->
+<!-- # contact_data %>% nrow() -->
+<!-- # contact_data2 %>% nrow() -->
+<!-- # household_data %>% nrow() -->
+<!-- # household_data2 %>% nrow() -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # participant_data %>% ncol() -->
+<!-- # participant_data2 %>% ncol() -->
+<!-- # contact_data %>% ncol() -->
+<!-- # contact_data2 %>% ncol() -->
+<!-- # household_data %>% ncol() -->
+<!-- # household_data2 %>% ncol() -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # contact_data %>% -->
+<!-- #   select(survey_round, part_id, starts_with("cnt_age")) %>% -->
+<!-- #   bind_cols( -->
+<!-- #     contact_data2 %>% -->
+<!-- #       select(survey_round, part_id, cont_id, starts_with("cnt_age")) -->
+<!-- #   ) -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # contact_data %>% -->
+<!-- #   select(cnt_age) %>% -->
+<!-- #   bind_cols( -->
+<!-- #     contact_data2 %>% -->
+<!-- #       mutate(cnt_age2 = paste0(cnt_age_est_min, "-", cnt_age_est_max)) %>% -->
+<!-- #       select(cnt_age2) -->
+<!-- #   ) %>% -->
+<!-- #   count(cnt_age, cnt_age2) -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # contact_data <- contact_data %>% -->
+<!-- #   group_by(wave, part_id) %>% -->
+<!-- #   mutate(cont_id = seq(n())) %>% -->
+<!-- #   rowwise() %>% -->
+<!-- #   mutate( -->
+<!-- #     cnt_otherplace = sum(c( -->
+<!-- #       cnt_outside_other, -->
+<!-- #       cnt_public_market, -->
+<!-- #       cnt_other_house, -->
+<!-- #       cnt_worship, -->
+<!-- #       cnt_supermarket, -->
+<!-- #       cnt_shop -->
+<!-- #     ), na.rm = T) > 0 -->
+<!-- #   ) %>% -->
+<!-- #   ungroup() %>% -->
+<!-- #   mutate( -->
+<!-- #     cnt_transport = cnt_public_transport, -->
+<!-- #     cnt_leisure = cnt_sport, -->
+<!-- #     cnt_home = ifelse(is.na(cnt_home), 0, cnt_home), -->
+<!-- #     cnt_work = ifelse(is.na(cnt_work), 0, cnt_work), -->
+<!-- #     cnt_school = ifelse(is.na(cnt_school), 0, cnt_school), -->
+<!-- #     cnt_transport = ifelse(is.na(cnt_transport), 0, cnt_transport), -->
+<!-- #     cnt_leisure = ifelse(is.na(cnt_leisure), 0, cnt_leisure), -->
+<!-- #     cnt_otherplace = ifelse(is.na(cnt_otherplace), 0, cnt_otherplace) -->
+<!-- #   ) -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # contact_data %>% -->
+<!-- #   select(survey_round, part_id, cont_id, cnt_health_facility, cnt_shop, cnt_supermarket, cnt_other_place, cnt_other_house, cnt_outside_other, cnt_public_market, cnt_salon, cnt_leisure, cnt_bar_rest, cnt_worship, cnt_transport, cnt_school, cnt_work, cnt_home, cnt_household, cnt_inside, cnt_outside, cnt_otherplace, cnt_other_place) %>% -->
+<!-- #   pivot_longer(!c(survey_round, part_id, cont_id)) %>% -->
+<!-- #   full_join( -->
+<!-- #     contact_data2 %>% -->
+<!-- #       group_by(survey_round, part_id) %>% -->
+<!-- #       mutate(cont_id = seq(n())) %>% -->
+<!-- #       ungroup() %>% -->
+<!-- #       select(survey_round, part_id, cont_id, cnt_health_facility, cnt_shop, cnt_supermarket, cnt_other_place, cnt_other_house, cnt_outside_other, cnt_public_market, cnt_salon, cnt_leisure, cnt_bar_rest, cnt_worship, cnt_transport, cnt_school, cnt_work, cnt_home, cnt_household, cnt_inside, cnt_outside, cnt_otherplace, cnt_other_place) %>% -->
+<!-- #       pivot_longer(!c(survey_round, part_id, cont_id)), -->
+<!-- #     by = c("survey_round", "part_id", "cont_id", "name") -->
+<!-- #   ) %>% -->
+<!-- #   filter(value.x != value.y) %>% -->
+<!-- #   count(name, value.x, value.y) -->
+<!-- # ``` -->
 
 # Append Wave and Series Columns
 
@@ -277,6 +277,11 @@ Text
 ```{r}
 participant_data <- participant_data %>%
   mutate(
+    part_age_group_3 = cut(
+      part_age,
+      breaks = c(0, 18, 65, Inf),
+      right = FALSE
+    ),
     part_age_group_75 = cut(
       part_age,
       breaks = c(0, 18, seq(35, 75, 20), Inf),
@@ -305,7 +310,7 @@ contact_data <- contact_data %>%
       select(
         wave,
         part_id,
-        part_age_group,
+        part_age_group_3,
         part_age_group_75,
         part_age_group_65,
         part_age_group_85
@@ -867,6 +872,19 @@ contact_data <- contact_data %>%
       "65-74" = "55-74",
       "75-84" = "75+",
       "85+" = "75+"
+    ),
+    cnt_age_group_3 = recode(
+      cnt_age_group_85,
+      "0-11" = "0-17",
+      "12-17" = "0-17",
+      "18-24" = "18-64",
+      "25-34" = "18-64",
+      "35-44" = "35-64",
+      "45-54" = "35-64",
+      "55-64" = "55-64",
+      "65-74" = "65+",
+      "75-84" = "65+",
+      "85+" = "65+"
     )
   )
 ```
