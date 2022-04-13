@@ -3680,7 +3680,11 @@ ggplot(data = difference_in_number_of_contacts_by_wave_participant_and_location 
 
 Text
 
-## Reproduction Number
+## Statistical Models
+
+Text
+
+### Reproduction Number
 
 Text
 
@@ -3732,7 +3736,7 @@ ggplot(
 
 Text
 
-## Stringency
+### Stringency
 
 Text
 
@@ -3790,6 +3794,117 @@ summary(
     fixed = number_of_contacts ~ 1 + stringency + stringency:part_age + stringency:time,# + stringency:part_age:time,
     random = ~ 1 | part_id,
     data = number_of_contacts_by_wave_and_participant %>%
+      left_join(
+        sample_weights,
+        c("wave", "part_id")
+      ) %>%
+      left_join(
+        stringency.data,
+        by = "date"
+      ) %>%
+      mutate(time = (date - as.Date("2020-03-15")) / 365.25)#,
+    #weights = sample_weight_by_sex_and_age
+  )
+)
+```
+
+Text
+
+### Mixed Effects Ordered Logistic Regression
+
+Text
+
+```{r}
+ggplot() +
+  geom_col(
+    mapping = aes(
+      x = number_of_contacts,
+      y = p,
+      fill = number_of_contacts
+    ),
+    data = number_of_contacts_by_wave_and_participant %>%
+      mutate(number_of_contacts = cut(
+        number_of_contacts,
+        c(0, 3, Inf),
+        include.lowest = TRUE,
+        right = FALSE
+      )) %>%
+      count(number_of_contacts) %>%
+      mutate(p = n / sum(n)),
+    position = "dodge"
+  )
+```
+
+Text
+
+```{r}
+library(lme4)
+summary(
+  glmer(
+    formula = number_of_contacts ~ 1 + stringency + (1 | part_id),
+    family = binomial(),
+    data = number_of_contacts_by_wave_and_participant %>%
+      mutate(
+        number_of_contacts = cut(
+          number_of_contacts,
+          c(0, 3, Inf),
+          include.lowest = TRUE,
+          right = FALSE
+        )
+      ) %>%
+      left_join(
+        sample_weights,
+        c("wave", "part_id")
+      ) %>%
+      left_join(
+        stringency.data,
+        by = "date"
+      ) %>%
+      mutate(time = (date - as.Date("2020-03-15")) / 365.25)#,
+    #weights = sample_weight_by_sex_and_age
+  )
+)
+```
+
+Text
+
+```{r}
+ggplot() +
+  geom_col(
+    mapping = aes(
+      x = number_of_contacts,
+      y = p,
+      fill = number_of_contacts
+    ),
+    data = number_of_contacts_by_wave_and_participant %>%
+      mutate(number_of_contacts = cut(
+        number_of_contacts,
+        c(0, 1, 2, 3, 5, Inf),
+        include.lowest = TRUE,
+        right = FALSE
+      )) %>%
+      count(number_of_contacts) %>%
+      mutate(p = n / sum(n)),
+    position = "dodge"
+  )
+```
+
+Text
+
+```{r}
+library(ordinal)
+summary(
+  clmm(
+    formula = number_of_contacts ~ 1 + stringency + (1 | part_id),
+    data = number_of_contacts_by_wave_and_participant %>%
+      mutate(
+        number_of_contacts = cut(
+          number_of_contacts,
+          c(0, 1, 2, 3, 5, Inf),
+          include.lowest = TRUE,
+          right = FALSE
+        )
+      ) %>%
       left_join(
         sample_weights,
         c("wave", "part_id")
