@@ -3893,30 +3893,61 @@ Text
 
 ```{r}
 library(ordinal)
-summary(
-  clmm(
-    formula = number_of_contacts ~ 1 + stringency + (1 | part_id),
-    data = number_of_contacts_by_wave_and_participant %>%
-      mutate(
-        number_of_contacts = cut(
-          number_of_contacts,
-          c(0, 1, 2, 3, 5, Inf),
-          include.lowest = TRUE,
-          right = FALSE
-        )
-      ) %>%
-      left_join(
-        sample_weights,
-        c("wave", "part_id")
-      ) %>%
-      left_join(
-        stringency.data,
-        by = "date"
-      ) %>%
-      mutate(time = (date - as.Date("2020-03-15")) / 365.25)#,
-    #weights = sample_weight_by_sex_and_age
-  )
+model.logistic <- clmm(
+  formula = number_of_contacts ~ 1 + stringency + (1 | part_id),
+  data = number_of_contacts_by_wave_and_participant %>%
+    mutate(
+      number_of_contacts = cut(
+        number_of_contacts,
+        c(0, 1, 2, 3, 5, Inf),
+        include.lowest = TRUE,
+        right = FALSE
+      )
+    ) %>%
+    left_join(
+      sample_weights,
+      c("wave", "part_id")
+    ) %>%
+    left_join(
+      stringency.data,
+      by = "date"
+    ) %>%
+    mutate(time = (date - as.Date("2020-03-15")) / 365.25)#,
+  #weights = sample_weight_by_sex_and_age
 )
+model.logistic
+VarCorr(model.logistic)
+```
+
+Text
+
+### Mixed Effects Zipf Model
+
+Text
+
+```{r}
+library(gamlss)
+model.zipf <- gamlss(
+  formula = number_of_contacts ~ 0 + re(fixed = ~ 1 + stringency, random = ~ 1|part_id),
+  family = ZAZIPF,
+  data = number_of_contacts_by_wave_and_participant %>%
+    left_join(
+      sample_weights,
+      c("wave", "part_id")
+    ) %>%
+    left_join(
+      stringency.data,
+      by = "date"
+    ) %>%
+    mutate(
+      time = (date - as.Date("2020-03-15")) / 365.25,
+      part_id = as.factor(part_id)
+    ) %>%
+    dplyr::select(number_of_contacts, stringency, part_id)#,
+  #weights = sample_weight_by_sex_and_age
+)
+model.zipf$mu.coefSmo
+model.zipf$sigma.coefficients
 ```
 
 Text
