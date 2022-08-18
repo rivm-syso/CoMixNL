@@ -1,7 +1,4 @@
 
-# data directory
-data
-
 # History files
 .Rhistory
 .Rapp.history
