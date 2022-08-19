@@ -18,6 +18,7 @@
 # - Recoding part_id to unique participants
 # - Adding variables that are needed for analysis to participant_data
 # - Determining start and end dates of waves
+# - Determining start and end dates of holiday periods
 # - Using identical age groups for all data sources
 # 
 ################################################################################
@@ -74,6 +75,23 @@ dates_of_waves <- participant_data %>%
             date_round_max = max(survey_date-1),
             .groups = "drop")
 
+
+# dates of holiday periods
+
+sorted_holidays <- sort(c(holidays, schoolholidays))
+
+dates_of_holidays <- tibble(holiday_start = sorted_holidays[c(10, diff(sorted_holidays)) > 1],
+                            holiday_end = sorted_holidays[c(diff(sorted_holidays), 10) > 1],
+                            series = if_else(holiday_start >= as.Date("2020-12-15"), "2021", "2020")) %>% 
+  filter(holiday_start < as.Date("2020-10-01") | holiday_start > as.Date("2020-12-01")) %>% 
+  mutate(holiday_end = if_else(holiday_end == as.Date("2020-08-30"), as.Date("2020-08-10"), holiday_end)) %>% 
+  bind_rows(tibble(holiday_start = as.Date("2021-09-28"),
+                   holiday_end = as.Date("2021-09-27"),
+                   series = "2021"))
+
+
+
+
 vaccination_start_dates <- vaccination_start_dates %>% 
   mutate(age = 2021-birthyear,
          age_group = cut(age, 
@@ -106,4 +124,4 @@ population_data_2021 <- population_data_2021 %>%
 
 rm(age_group_breaks)
 rm(age_group_labels)
-
+rm(sorted_holidays)

@@ -26,6 +26,9 @@
 #   (source: https://opendata.cbs.nl/statline/#/CBS/nl/dataset/7461BEV/)
 # - General holidays and schoolholidays in 2020 and 2021
 #   (source: https://opendata.rijksoverheid.nl/v1/sources/rijksoverheid/infotypes/schoolholidays/schoolyear/2020-2021?output=html)
+# - Pico data of rounds 1, 2, 4, and 5
+#   (source pico 1 and 2: https://doi.org/10.2807/1560-7917.ES.2021.26.8.2000994
+#    source pico 4 and 5: in preparation)
 #
 ################################################################################
 
@@ -54,4 +57,21 @@ holidays <- c(as.Date("2020-04-12"), as.Date("2020-04-13"), as.Date("2020-04-27"
               as.Date("2021-01-01"), as.Date("2021-04-04"), as.Date("2021-04-05"), as.Date("2021-04-27"), as.Date("2021-05-05"), 
               as.Date("2021-05-13"), as.Date("2021-05-23"), as.Date("2021-05-24"))
 
+pico_data <- expand_grid(age_group = c("0-17", "18-64", "65+"),
+                         # dates of pico rounds 1, 2, 4, and 5
+                         date = c(as.Date("2020-04-15"), as.Date("2020-06-15"), as.Date("2021-02-15"), as.Date("2021-06-15")),
+                         activity = factor(c("0", "< 2", "< 3", "< 5", "< 10"))) %>% 
+  mutate(cum_pred = c(0.490, 0.601, 0.688, 0.818, 0.942,
+                      0.165, 0.212, 0.260, 0.328, 0.452,
+                      0.319, 0.401, 0.475, 0.566, 0.684,
+                      0.155, 0.192, 0.236, 0.313, 0.409,
+                      0.378, 0.506, 0.597, 0.731, 0.885,
+                      0.188, 0.270, 0.369, 0.520, 0.735,
+                      0.323, 0.447, 0.570, 0.712, 0.854,
+                      0.242, 0.330, 0.438, 0.585, 0.779,
+                      0.526, 0.667, 0.771, 0.912, 0.975,
+                      0.327, 0.466, 0.609, 0.776, 0.923,
+                      0.465, 0.646, 0.784, 0.909, 0.977,
+                      0.350, 0.456, 0.591, 0.743, 0.895),
+         series = format(date, "%Y"))
 

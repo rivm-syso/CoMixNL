@@ -20,6 +20,7 @@
 library(tidyverse)
 library(lubridate)
 library(socialmixr) # only needed when directly downloading data from Zenodo
+library(mgcv)
 library(cowplot)
 library(xtable)
 
