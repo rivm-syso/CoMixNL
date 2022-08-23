@@ -110,18 +110,18 @@ saveRDS(pred_data, "./results/pred_generalpopulation_cat6.rds")
 pred_data <- readRDS("./results/pred_generalpopulation_cat6.rds")
 
 ggplot(data = pred_data %>% 
-         mutate(activity = factor(activity, levels = 1:5, labels = c("0", "< 2", "< 3", "< 5", "< 10"))),
-       aes(x = date, y = cum_pred, col = factor(activity), fill = factor(activity))) +
+         mutate(activity = factor(activity, levels = 1:5, labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))),
+       aes(x = date, y = 1-cum_pred, col = factor(activity), fill = factor(activity))) +
   geom_rect(data = dates_of_holidays,
             aes(xmin = holiday_start - 0.5, xmax = holiday_end + 0.5, ymin = 0, ymax = 0.99),
             fill = "grey",
             alpha = 0.3,
             inherit.aes = FALSE) +
-  geom_ribbon(aes(ymin = cum_pred_lower, ymax = cum_pred_upper),
+  geom_ribbon(aes(ymin = 1-cum_pred_lower, ymax = 1-cum_pred_upper),
               alpha = 0.3, col = NA) +
   geom_line() +
-  geom_point(data = pico_data,
-             aes(shape = "Pienter Corona study"),
+  geom_point(data = pico_data %>% mutate(activity = factor(activity, levels = c("0", "< 2", "< 3", "< 5", "< 10"), labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))),
+             aes(shape = "PiCo survey"),
              size = 2) +
   scale_shape_manual('', values = 19) +
   scale_x_date(breaks = "month",

@@ -77,7 +77,7 @@ for(set in names(fit)) {
 }
 
 
-saveRDS(sim_data, "./results/pred_studypopulation_cat6_all.rds")
+saveRDS(sim_data, "./results/pred_studypopulation_cat6.rds")
 
 ####### Compare predicted and observed contacts of study population ############
 
@@ -94,19 +94,19 @@ sim_data %>%
 
 plot_data <- sim_data %>% 
   filter(activity != 6) %>% 
-  mutate(activity = factor(activity, levels = 1:5, labels = c("0", "< 2", "< 3", "< 5", "< 10"))) %>% 
+  mutate(activity = factor(activity, levels = 1:5, labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))) %>% 
   group_by(series, age_group, survey_round, activity) %>% 
-  summarise(cum_pred_lower = quantile(cum_activity, 0.025),
-            cum_pred_upper = quantile(cum_activity, 0.975),
-            cum_pred = quantile(cum_activity, 0.5)) %>% 
+  summarise(cum_pred_lower = 1-quantile(cum_activity, 0.025),
+            cum_pred_upper = 1-quantile(cum_activity, 0.975),
+            cum_pred = 1-quantile(cum_activity, 0.5)) %>% 
   left_join(fit_data %>% 
-              mutate(activity = factor(activity, levels = 1:5, labels = c("0", "< 2", "< 3", "< 5", "< 10"))) %>% 
+              mutate(activity = factor(activity, levels = 1:5, labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))) %>% 
               rename(age_group = part_age_group) %>% 
               group_by(series, age_group, survey_round, activity) %>% 
               count %>% 
               group_by(series, age_group, survey_round) %>% 
               mutate(frac_obs = n/sum(n),
-                     sum_obs = cumsum(frac_obs)) %>% 
+                     sum_obs = 1-cumsum(frac_obs)) %>% 
               dplyr::select(-n)) %>% 
   left_join(dates_of_waves) 
 
@@ -127,7 +127,7 @@ ggplot(data = plot_data,
             alpha = 0.3,
             inherit.aes = FALSE) +
   geom_rect(aes(xmin = date_round_min, xmax = date_round_max), alpha = 0.3, col = NA) +
-  geom_segment(aes(linetype = "predicted")) +
+  geom_segment(aes(linetype = "fitted")) +
   scale_linetype_manual('', values = "solid")+
   geom_point(aes(x = date_round, y = sum_obs, col = factor(activity), shape = "observed")) +
   scale_shape_manual('', values = 1) +
