@@ -37,15 +37,17 @@ participant_characteristics <- participant_data %>%
 
 ######## Figure 1: Number of participants included per survey round in the 2020 and 2021 series, by age group ######## 
 
-participant_data %>%
+number_of_respondents_per_wave_per_age <- participant_data %>%
   group_by(series, survey_round, age_group) %>%
   count() %>%
-  left_join(dates_of_waves) %>%
-  ggplot(mapping = aes(
-    x = date_round,
-    y = n,
-    col = age_group
-  )) +
+  left_join(dates_of_waves)
+
+ggplot(data = number_of_respondents_per_wave_per_age,
+       mapping = aes(
+         x = date_round,
+         y = n,
+         col = age_group)
+       ) +
   geom_point() +
   geom_line() +
   scale_x_date(
@@ -277,10 +279,7 @@ participant_characteristics_agegroup <- participant_characteristics %>%
               summarise(n = sum(population)) %>% 
               group_by(series) %>% 
               mutate(perc_general = 100*n/sum(n)) %>% 
-              select(-n)) %>% 
-  pivot_wider(names_from = "series", values_from = c(n, starts_with("perc"))) %>% 
-  arrange(age_group) %>% 
-  relocate(ends_with("2021"), .after = last_col())
+              select(-n))
 
 
 participant_characteristics_gender <- participant_characteristics %>% 
@@ -296,9 +295,7 @@ participant_characteristics_gender <- participant_characteristics %>%
               summarise(n = sum(population)) %>% 
               group_by(series) %>% 
               mutate(perc_general = 100*n/sum(n)) %>% 
-              select(-n)) %>% 
-  pivot_wider(names_from = "series", values_from = c(n, starts_with("perc"))) %>% 
-  relocate(ends_with("2021"), .after = last_col())
+              select(-n))
 
 
 participant_characteristics_risk <- participant_characteristics %>% 
@@ -321,9 +318,7 @@ participant_characteristics_risk <- participant_characteristics %>%
               summarise(n = sum(fraction*population)) %>% 
               group_by(series) %>% 
               mutate(perc_general = 100*n/sum(n)) %>% 
-              select(-n)) %>% 
-  pivot_wider(names_from = "series", values_from = c(n, starts_with("perc"))) %>% 
-  relocate(ends_with("2021"), .after = last_col())
+              select(-n))
 
 
 participant_characteristics_hhsize <- participant_characteristics %>% 
@@ -333,10 +328,7 @@ participant_characteristics_hhsize <- participant_characteristics %>%
   group_by(series) %>% 
   mutate(perc_study = 100*n/sum(n)) %>% 
   full_join(tibble(hh_size = c("1", "2", "3", "4", "5+"),
-                   perc_general = c(17, 31, 17, 23, 12))) %>% 
-  pivot_wider(names_from = "series", values_from = c(n, starts_with("perc"))) %>% 
-  relocate(ends_with("2021"), .after = last_col())
-
+                   perc_general = c(17, 31, 17, 23, 12)))
 
 
 bind_rows("age group" = participant_characteristics_agegroup %>% rename(value = age_group),
@@ -344,6 +336,9 @@ bind_rows("age group" = participant_characteristics_agegroup %>% rename(value = 
           "high risk" = participant_characteristics_risk %>% rename(value = high_risk),
           "household size" = participant_characteristics_hhsize %>% rename(value = hh_size),
           .id = "var") %>% 
+  ungroup %>% 
+  arrange(series, var) %>% 
+  select(-series) %>% 
   xtable(type = "latex", 
          caption= "Number of participants in the 2020 and 2021 series by participant characteristics", 
          #align=c("l", rep("r", 11)),
