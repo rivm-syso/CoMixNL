@@ -1,3 +1,5 @@
+# fit results
+results/fit*.rds
 
 # History files
 .Rhistory
