@@ -35,14 +35,14 @@ participant_characteristics <- participant_data %>%
   ungroup
 
 
-######## Figure 1: Number of participants included per survey round in the 2020 and 2021 series, by age group ######## 
+######## Figure 1A: Number of participants included per survey round in the 2020 and 2021 series, by age group ######## 
 
 number_of_respondents_per_wave_per_age <- participant_data %>%
   group_by(series, survey_round, age_group) %>%
   count() %>%
   left_join(dates_of_waves)
 
-ggplot(data = number_of_respondents_per_wave_per_age,
+p_resp <- ggplot(data = number_of_respondents_per_wave_per_age,
        mapping = aes(
          x = date_round,
          y = n,
@@ -66,16 +66,18 @@ ggplot(data = number_of_respondents_per_wave_per_age,
   theme_light() +
   theme(
     strip.background = element_rect(fill = "white"),
-    strip.text = element_text(colour = 1)
+    strip.text = element_text(colour = 1),
+    strip.placement = "outside"
   ) +
   facet_grid(
     cols = vars(series),
     scales = "free_x",
-    space = "free"
+    space = "free",
+    switch = "x"
   )
 
-ggsave(filename = paste0("./figures/number_participants.png"), 
-       width = 7, height = 4, dpi = 300)
+# ggsave(filename = paste0("./figures/number_participants.png"), 
+#        width = 7, height = 4, dpi = 300)
 
 # drop-out rates per age group
 
@@ -92,7 +94,51 @@ number_of_respondents_per_wave_per_age %>%
   View
 
 
-######## Figure 2: Vaccination and risk status of study and general population ########### 
+######## Figure 1B: Risk status of study and general population ########### 
+
+high_risk_population <- participant_characteristics %>% 
+  group_by(series, age_group, part_risk) %>%
+  count %>% 
+  # only include participants with unambiguous risk status
+  filter(!is.na(part_risk) & part_risk != "mixed") %>% 
+  group_by(series, age_group) %>% 
+  mutate(n_tot = sum(n)) %>% 
+  filter(part_risk == "yes") %>% 
+  mutate(high_risk_mean = n/n_tot,
+         high_risk_upper = calculate_binomialprob_upper(n_tot = n_tot, n_obs = n),
+         high_risk_lower = calculate_binomialprob_lower(n_tot = n_tot, n_obs = n)
+  ) %>% 
+  full_join(high_risk %>% 
+              full_join(population_data_2021) %>% 
+              group_by(age_group) %>% 
+              summarise(high_risk_general = sum(high_risk*population)/sum(population)))
+
+
+p_risk <- ggplot(data = high_risk_population,
+                 aes(x = age_group, y = high_risk_general, fill = age_group, group = 1)) +
+  geom_bar(stat = "identity", 
+           aes(col = "general population")) +
+  geom_pointrange(aes(y = high_risk_mean, ymin = high_risk_lower, ymax = high_risk_upper, group = 1, shape = "study population"),
+                  col = 1) +
+  scale_shape_manual('', values = 21) +
+  scale_color_manual('', values = NA) +
+  theme_light() +
+  theme(legend.position = c(0.9, 0.9),
+        legend.justification = c(1, 1),
+        legend.text = element_text(size=8),
+        axis.text.x = element_text(angle = 90),
+        legend.margin = margin(t = -10, b = -10, unit = "pt"),
+        strip.background = element_rect(fill = "white"),
+        strip.text = element_text(colour = 1)) +
+  guides(fill = "none") +
+  labs(x = "age group",
+       y = "high risk fraction") +
+  facet_wrap(facets = vars(series),
+             nrow = 1,
+             scale = "free_x")
+
+
+######## Figure 1C: Vaccination status of study and general population ########### 
 
 vaccination_proportions_of_participants_by_wave_and_age <- participant_data %>%
   filter(series == "2021") %>%
@@ -107,25 +153,7 @@ vaccination_proportions_of_participants_by_wave_and_age <- participant_data %>%
   left_join(dates_of_waves, by = "survey_round")
 
 
-high_risk_population <- participant_characteristics %>% 
-  group_by(age_group, part_risk) %>%
-  count %>% 
-  # only include participants with unambiguous risk status
-  filter(!is.na(part_risk) & part_risk != "mixed") %>% 
-  group_by(age_group) %>% 
-  mutate(n_tot = sum(n)) %>% 
-  filter(part_risk == "yes") %>% 
-  mutate(high_risk_mean = n/n_tot,
-         high_risk_upper = calculate_binomialprob_upper(n_tot = n_tot, n_obs = n),
-         high_risk_lower = calculate_binomialprob_lower(n_tot = n_tot, n_obs = n)
-  ) %>% 
-  full_join(high_risk %>% 
-              full_join(population_data_2021) %>% 
-              group_by(age_group) %>% 
-              summarise(high_risk_general = sum(high_risk*population)/sum(population)))
-
-
-p <- ggplot(
+p_vacc <- ggplot(
   data = vaccination_coverage,
   aes(x = date, 
       y = vacc_coverage,
@@ -154,7 +182,7 @@ p <- ggplot(
 
 
 
-inset <- ggplot() +
+inset_vacc <- ggplot() +
   geom_segment(data = tibble(x = c(1, 0.5),
                              xend = c(1, 1.5),
                              y = c(1.5, 4),
@@ -165,9 +193,9 @@ inset <- ggplot() +
   geom_pointrange(data = tibble(x = 1, y = 6, ymin = 5.5, ymax = 6.5),
                   aes(x = x, y = y, ymin = ymin, ymax = ymax)) +
   geom_text(data = tibble(x = rep(3, 3), y = c(2, 4, 6), 
-                          label = c("mean vaccination start date for non-risk groups",
-                                    "mean vaccination coverage for general population",
-                                    "mean vaccination coverage (and 95% CI) for study population")),
+                          label = c("mean vaccination start date\nfor non-risk groups",
+                                    "mean vaccination coverage\nfor general population",
+                                    "mean vaccination coverage (and 95% CI)\nfor study population")),
             aes(x = x, y = y, label = label), 
             hjust = 0, 
             size = 3) +
@@ -176,30 +204,29 @@ inset <- ggplot() +
   theme_void()
 
 
-p_risk <- ggplot(data = high_risk_population,
-                 aes(x = age_group, y = high_risk_general, fill = age_group, group = 1)) +
-  geom_bar(stat = "identity", 
-           aes(col = "general population")) +
-  geom_pointrange(aes(y = high_risk_mean, ymin = high_risk_lower, ymax = high_risk_upper, group = 1, shape = "study population"),
-                  col = 1) +
-  scale_shape_manual('', values = 21) +
-  scale_color_manual('', values = NA) +
-  theme_light() +
-  theme(legend.position = c(0.1, 0.9),
-        legend.justification = c(0, 1),
-        legend.text = element_text(size=8),
-        legend.margin = margin(t = -10, b = -10, unit = "pt")) +
-  guides(fill = "none") +
-  labs(x = "age group",
-       y = "high risk fraction")
+######## Figure 1: Description of study population, compared to general population ########### 
+
+pAB <- plot_grid(p_resp,
+          p_risk,
+          rel_widths = c(3,2),
+          nrow = 1,
+          labels = c("A","B"),
+          label_size = 18,
+          label_fontfamily = "sans")
+
+pC <- plot_grid(ggdraw(p_vacc) + draw_plot(inset_vacc, 2/3, 0, 1/3, 1/3),
+                labels = c("C"),
+                label_size = 18,
+                label_fontfamily = "sans")
+
+plot_grid(pAB,
+          pC,
+          rel_heights = c(2,3),
+          ncol = 1)
 
 
-ggdraw(p) +
-  draw_plot(inset, 0.02, 0.75, 0.45, 0.2) +
-  draw_plot(p_risk, 2/3, 0, 1/3, 1/3)
-
-ggsave(filename = paste0("./figures/vaccination_coverage_high_risk.png"), 
-       width = 10, height = 6, dpi = 300)
+ggsave(filename = paste0("./figures/characteristics_studypopulation.png"), 
+       width = 12, height = 9, dpi = 300)
 
 
 
