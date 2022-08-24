@@ -120,9 +120,14 @@ ggplot(data = pred_data %>%
   geom_ribbon(aes(ymin = 1-cum_pred_lower, ymax = 1-cum_pred_upper),
               alpha = 0.3, col = NA) +
   geom_line() +
-  geom_point(data = pico_data %>% mutate(activity = factor(activity, levels = c("0", "< 2", "< 3", "< 5", "< 10"), labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))),
-             aes(shape = "PiCo survey"),
-             size = 2) +
+  geom_pointrange(data = pico_data %>% 
+               filter(activity < 6) %>% 
+               mutate(activity = factor(activity, levels = 1:5, labels = c("> 0", "> 1", "> 2", "> 4", "> 9"))),
+             aes(y = 1-mean,
+                 ymin = 1-lower,
+                 ymax = 1-upper,
+                 shape = "PiCo survey"),
+             size = 0.4) +
   scale_shape_manual('', values = 19) +
   scale_x_date(breaks = "month",
                date_labels = "%b",

@@ -16,8 +16,8 @@
 # Masterscript for CoMixNL analysis
 # 
 # Steps 01 - 04 need to be run always
-# Steps 05 - 08 can be run independently using intermediate results that are
-# stored in ./results directory
+# Figures in steps 07 - 08 can be run independently using intermediate results 
+# that are stored in ./results directory
 #
 ################################################################################
 
@@ -28,5 +28,5 @@ source("./scripts/04_Prepare_data.r")
 source("./scripts/05_Analyze_characteristics_studypopulation.r")
 source("./scripts/06_Analyze_contacts_studypopulation.r")
 source("./scripts/07_Predict_contacts_studypopulation.r")
-# 08_Predict_contacts_generalpopulation
+source("./scripts/08_Predict_contacts_generalpopulation.r")
 

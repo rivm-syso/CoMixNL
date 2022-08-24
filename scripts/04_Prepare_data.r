@@ -20,6 +20,7 @@
 # - Determining start and end dates of waves
 # - Determining start and end dates of holiday periods
 # - Using identical age groups for all data sources
+# - Adding upper and lower limits of observed activity levels in pico surveys
 # 
 ################################################################################
 
@@ -120,6 +121,22 @@ population_data_2021 <- population_data_2021 %>%
                          right = FALSE, 
                          include_lowest = TRUE, 
                          labels = age_group_labels))
+
+
+pico_data <- pico_data %>% 
+  group_by(survey, age_group) %>% 
+  arrange(activity) %>% 
+  mutate(tmp = t(sample_multinomial_limits(n = as_vector(n))),
+         mean = cumsum(n)/tot,
+         lower = tmp[,1],
+         upper = tmp[,2]) %>% 
+  select(-tmp) %>% 
+  ungroup() %>% 
+  arrange(survey, age_group, activity) %>% 
+  mutate(age_group = case_when(age_group == "[0,18)" ~ "0-17",
+                               age_group == "[18,65)" ~ "18-64",
+                               TRUE ~ "65+"),
+         series = format(date, "%Y"))
 
 
 rm(age_group_breaks)
