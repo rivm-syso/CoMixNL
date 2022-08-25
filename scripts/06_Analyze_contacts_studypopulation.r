@@ -88,7 +88,23 @@ number_of_contacts_by_wave_and_participant <- number_of_contacts_by_wave_and_par
 
 ########### powerlaw-like distribution of number of contacts ###################
 
-number_of_contacts_by_wave_and_participant %>% 
+p <- number_of_contacts_by_wave_and_participant %>% 
+  group_by(part_age_group, series) %>% 
+  arrange(number_of_contacts) %>% 
+  mutate(cumsum = (n() - (1:n()-1))/n()) %>% 
+  ungroup %>% 
+  ggplot(aes(x = number_of_contacts, 
+             y = cumsum, 
+             col = part_age_group, 
+             lty = series %>% fct_rev)) +
+  geom_line() +
+  theme_light() +
+  labs(x = "number of non-household contacts",
+       y = "fraction of participants reporting more contacts",
+       lty = " series",
+       col = "age group")
+
+p_inset <- number_of_contacts_by_wave_and_participant %>% 
   group_by(part_age_group, series) %>% 
   arrange(number_of_contacts) %>% 
   mutate(cumsum = (n() - (1:n()-1))/n()) %>% 
@@ -99,18 +115,21 @@ number_of_contacts_by_wave_and_participant %>%
              lty = series %>% fct_rev)) +
   geom_line() +
   scale_x_continuous(trans = "log",
-                     breaks = c(1, 10, 100, 1000)) +
+    breaks = c(1, 10, 100, 1000)) +
   scale_y_continuous(trans = "log", 
-                     limits = c(1/10000,1),
-                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1)) +
+    limits = c(1/10000,1),
+    breaks = c(0.0001, 0.001, 0.01, 0.1, 1)) +
   theme_light() +
-  labs(x = "number of contacts (excluding household)",
-       y = " complementary CDF",
-       lty = " series",
-       col = "age group")
+  labs(x = NULL,
+       y = NULL) +
+  guides(lty = "none",
+         col = "none")
 
-ggsave(filename = paste0("./figures/powerlaw_contacts.png"), 
-       width = 7, height = 4, dpi = 300)
+
+ggdraw(p) + draw_plot(p_inset, x = 0.18, y = 0.2, width = 0.65, height = 0.75)
+
+ggsave(filename = paste0("./figures/distribution_contacts.png"), 
+       width = 7, height = 5, dpi = 300)
 
 ########### analysis of number of contacts #####################################
 
