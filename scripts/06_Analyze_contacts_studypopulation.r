@@ -20,7 +20,7 @@
 # - Examine powerlaw-like distribution of number of contacts
 # - Analyse number of contacts (excluding household members) categorized in 
 #   activity levels
-# Produces figures 3 and S2 and table S2 in paper
+# Produces figures 2 and S2 and table S2 in paper
 # 
 ################################################################################
 
@@ -86,7 +86,7 @@ number_of_contacts_by_wave_and_participant <- number_of_contacts_by_wave_and_par
   ungroup
 
 
-########### powerlaw-like distribution of number of contacts ###################
+########### Fig 2 Distribution of number of contacts ###################
 
 p <- number_of_contacts_by_wave_and_participant %>% 
   group_by(part_age_group, series) %>% 

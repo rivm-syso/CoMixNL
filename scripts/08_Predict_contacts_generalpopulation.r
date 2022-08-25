@@ -19,7 +19,7 @@
 # - generating new data to resemble general population
 # - using predict function
 #
-# Produces figure 5 in paper
+# Produces figure 4 in paper
 # 
 ################################################################################
 

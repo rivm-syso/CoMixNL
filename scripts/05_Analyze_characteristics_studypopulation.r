@@ -18,7 +18,7 @@
 # - Number of respondents per wave and drop out rates
 # - Triangle of participant rounds versus survey rounds
 # - Vaccination coverage over time per age group + high risk status
-# Produces figures 1, 2 and S1 and tables 1 and S1 in article 
+# Produces figures 1 and S1 and tables 1 and S1 in article 
 #
 ################################################################################
 

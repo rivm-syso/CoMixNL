@@ -18,7 +18,7 @@
 # - drawing parameter sets from fit objects
 # - using predict function
 #
-# Produces figure 4 in paper
+# Produces figure 3 in paper
 # 
 ################################################################################
 
@@ -79,7 +79,7 @@ for(set in names(fit)) {
 
 saveRDS(sim_data, "./results/pred_studypopulation_cat6.rds")
 
-####### Compare predicted and observed contacts of study population ############
+####### Compare fitted and observed contacts of study population ############
 
 
 sim_data <- readRDS("./results/pred_studypopulation_cat6.rds")
