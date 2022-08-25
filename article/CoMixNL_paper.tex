@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 %\usepackage[singlelinecheck=off]{caption}
-\title{Dynamics of at-risk contacts for infection during the COVID-19 pandemic in 2020 and 2021 in The Netherlands}
+\title{Dynamics of non-household contacts during the COVID-19 pandemic in 2020 and 2021 in the Netherlands}
 
 \author[1,*]{Jantien A. Backer}
 \author[1]{Laurens Bogaardt}
@@ -16,9 +16,9 @@
 \keywords{COVID-19, SARS-CoV-2 virus, contact survey, control measures}
 
 \begin{abstract}
-The COVID-19 pandemic in 2020 and 2021 was for a large part mitigated by reducing contacts in the general population. To monitor how these contacts changed over the course of the pandemic in The Netherlands, a survey was conducted where participants reported every two weeks on their at-risk contacts, as part of the European CoMix survey. The survey included 1659 participants from April to August 2020 and 2514 participants from December 2020 to September 2021.
+The COVID-19 pandemic in 2020 and 2021 was for a large part mitigated by reducing contacts in the general population. To monitor how these contacts changed over the course of the pandemic in the Netherlands, a survey was conducted where participants reported every two weeks on their at-risk contacts, as part of the European CoMix survey. The survey included 1659 participants from April to August 2020 and 2514 participants from December 2020 to September 2021.
 
-We categorized the number of unique contacted persons reported per participant per day into six activity levels, \textit{viz} 0, 1, 2, 3-4, 5-9 and 10 or more reported contacts. After correcting for age, vaccination status, risk status for severe outcome of infection, and duration of participation, activity levels increased over time, coinciding with relaxation of COVID-19 control measures.
+We categorized the number of unique contacted persons excluding household members, reported per participant per day into six activity levels, \textit{viz} 0, 1, 2, 3-4, 5-9 and 10 or more reported contacts. After correcting for age, vaccination status, risk status for severe outcome of infection, and duration of participation, activity levels increased over time, coinciding with relaxation of COVID-19 control measures.
 
 \end{abstract}
 \begin{document}
@@ -221,8 +221,8 @@ J.B. managed the data collection, L.B. curated the data, J.B. and L.B. analysed 
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\linewidth]{../figures/prediction_studypopulation_cat6.png}
-\caption{Fitted and observed activity levels over time by series (columns) and age group (rows). Activity levels are shown as the fraction of participants that report less than a certain number of contacts outside the household. With five limits (0, <2, <3, <5 and <10) six activity levels are defined, e.g. the fraction between the limits of <3 and <5 is the activity level that represents 3 or 4 contacts per participant. The model predictions per round are shown by the median (lines) and 95\% prediction interval (shaded), from the first to last participation date. The observed activity levels per round (open circles) are placed at the mean participation date. Holidays and school holiday periods are shaded in grey.}
+\includegraphics[width=\linewidth]{../figures/fit_studypopulation_cat6.png}
+\caption{Fitted and observed activity levels over time by series (columns) and age group (rows). Activity levels are shown as the fraction of participants that report more than a certain number of non-household contacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per participant. The model fits per round are shown by the median (lines) and 95\% interval (shaded), from the first to last participation date of that survey round. The observed activity levels per round (open circles) are placed at the mean participation date of that survey round. Holidays and school holiday periods are shaded in grey.}
 \label{fig:studypop}
 \end{figure}
 
@@ -231,7 +231,7 @@ J.B. managed the data collection, L.B. curated the data, J.B. and L.B. analysed 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=\linewidth]{../figures/prediction_generalpopulation_cat6.png}
-\caption{Predicted activity levels over time by series (columns) and age group (rows) for the general population. Activity levels are shown as the fraction of the population that has less than a certain number of contacts outside the household. With five limits (0, <2, <3, <5 and <10) six activity levels are defined, e.g. the fraction between the limits of <3 and <5 is the activity level that represents 3 or 4 contacts per person. The model predictions are shown by the median (lines) and 95\% prediction interval (shaded). The activity levels observed in the contact survey of the independent PiCo study are shown for comparison per round at the mean participation date (points), with bootstrapped 95\% confidence intervals. Holidays and school holiday periods are shaded in grey.}
+\caption{Predicted activity levels over time by series (columns) and age group (rows) for the general population. Activity levels are shown as the fraction of the population that has more than a certain number of non-householdcontacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per person. The model predictions are shown by the median (lines) and 95\% interval (shaded). The activity levels observed in the contact survey of the independent PiCo study are shown for comparison per round at the mean participation date (points), with bootstrapped 95\% confidence intervals. Holidays and school holiday periods are shaded in grey.}
 \label{fig:genpop}
 \end{figure}
 

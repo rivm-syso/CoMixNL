@@ -145,11 +145,13 @@ ggplot(data = plot_data,
   theme_light() +
   theme(strip.background = element_rect(fill = "white"),
         strip.text = element_text(colour = 1),
+        strip.placement = "outside",
         legend.position = "bottom") +
   facet_grid(rows = vars(age_group),
              cols = vars(series),
              scales = "free_x",
-             space = "free")
+             space = "free",
+             switch = "x")
 
-ggsave(filename = paste0("./figures/prediction_studypopulation_cat6.png"), width = 10, height = 6, dpi = 300)
+ggsave(filename = paste0("./figures/fit_studypopulation_cat6.png"), width = 10, height = 6, dpi = 300)
 
