@@ -200,7 +200,7 @@ for(ser in unique(participant_data$series)) {
 
 # extract stationary fixed effects from summary of fit object
 results_fixedeffects <- lapply(1:length(fit), function(i) {
-  tmp <- summary(fit[[i]]);
+  tmp <- summary(fit[[i]])
   tmp$p.table %>% 
     as_tibble %>% 
     mutate(Variable = rownames(tmp$p.table)) %>% 
@@ -209,13 +209,21 @@ results_fixedeffects <- lapply(1:length(fit), function(i) {
     mutate(series = as.character(c(2020, 2020, 2021, 2021, 2021))[i],
            age_group = c("18-64", "65+", "0-17", "18-64", "65+")[i])}) %>% 
   bind_rows() %>% 
-  select(series, age_group, Variable, Estimate, `Std. Error`, `t value`, `Pr(>|t|)`)
+  select(series, age_group, Variable, Estimate, `Std. Error`, `t value`, `Pr(>|t|)`) %>% 
+  rename(`p-value` = `Pr(>|t|)`) %>% 
+  mutate(sign = case_when(`p-value` < 0.001 ~ "***",
+                          `p-value` < 0.01 ~ "**",
+                          `p-value` < 0.05 ~ "*",
+                          `p-value` < 0.1 ~ ".",
+                          TRUE ~ ""),
+         `p-value` = if_else(`p-value` < 0.001, "< 0.001",
+                             if_else(`p-value` < 0.01, "< 0.01", format(round(`p-value`, 2), nsmall = 2))))
 
 
 xtable(results_fixedeffects, 
        type = "latex", 
        caption= "Results for fixed effects of generalised additive model", 
-       align=c("l", rep("r", 7)),
+       align=c("l", rep("r", 7), "l"),
        table.placement = "h",
        hline.after = c(-1, nrow(tab))) %>% 
   print(include.rownames = FALSE)
