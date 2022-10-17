@@ -8,7 +8,7 @@ b. scripts and functions to reproduce the analysis results and figures
 
 c. all figures and intermediate results on which they are based
 
-d. article files in \LaTeX{}
+d. article files in LaTeX
 
 All code has been written in the programming language [R](https://www.r-project.org/about.html); see [Requirements](#requirements) for detailed specification.
 
@@ -53,7 +53,6 @@ lubridate
 mgcv
 cowplot
 xtable
-
 ```
 
 The `socialmixr` package is optional and only needed when directly downloading data from Zenodo. On this system it takes about 6 hours to reproduce all results, and saving the fits requires 130 Mb of free space.

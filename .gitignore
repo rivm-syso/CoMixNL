@@ -1,6 +1,12 @@
 # fit results
 results/fit*.rds
 
+# pdfs other than main article file
+article/CoMixNL_paper_*.pdf
+
+# data zip file
+data/CoMix_nl.zip
+
 # History files
 .Rhistory
 .Rapp.history

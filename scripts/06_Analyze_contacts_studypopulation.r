@@ -75,10 +75,25 @@ number_of_contacts_by_wave_and_participant %>%
   group_by(part_id) %>% 
   filter((max(part_round) >= 4 & sum(number_of_contacts_tot) == 0)) %>% 
   filter(part_round == max(part_round)) %>% 
-  select(part_id, part_round, hh_size) %>%
-  distinct() %>% 
+  select(part_id, part_round, hh_size, part_age) %>%
   View
-  
+
+
+excluded <- number_of_contacts_by_wave_and_participant %>% 
+  group_by(part_id) %>% 
+  filter((max(part_round) >= 4 & sum(number_of_contacts_tot) == 0)) %>% 
+  filter(part_round == max(part_round)) %>% 
+  select(part_id, part_round, hh_size, part_age)
+
+included <- number_of_contacts_by_wave_and_participant %>% 
+  group_by(part_id) %>% 
+  filter(!((max(part_round) >= 4 & sum(number_of_contacts_tot) == 0))) %>% 
+  filter(part_round == max(part_round)) %>% 
+  select(part_id, part_round, hh_size, part_age)
+
+t.test(excluded$part_age, included$part_age)
+t.test(excluded$hh_size, included$hh_size)
+
 # omit them (resulting in 27430 participant-wave combinations)
 number_of_contacts_by_wave_and_participant <- number_of_contacts_by_wave_and_participant %>% 
   group_by(part_id) %>% 

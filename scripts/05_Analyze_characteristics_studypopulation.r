@@ -76,9 +76,6 @@ p_resp <- ggplot(data = number_of_respondents_per_wave_per_age,
     switch = "x"
   )
 
-# ggsave(filename = paste0("./figures/number_participants.png"), 
-#        width = 7, height = 4, dpi = 300)
-
 # drop-out rates per age group
 
 number_of_respondents_per_wave_per_age %>% 
@@ -120,6 +117,7 @@ p_risk <- ggplot(data = high_risk_population,
            aes(col = "general population")) +
   geom_pointrange(aes(y = high_risk_mean, ymin = high_risk_lower, ymax = high_risk_upper, group = 1, shape = "study population"),
                   col = 1) +
+  scale_y_continuous(expand = c(0, 0)) +
   scale_shape_manual('', values = 21) +
   scale_color_manual('', values = NA) +
   theme_light() +
