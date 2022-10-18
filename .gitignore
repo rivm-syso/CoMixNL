@@ -3,6 +3,7 @@ results/fit*.rds
 
 # pdfs other than main article file
 article/CoMixNL_paper_*.pdf
+article/CoMixNL_paper_*.docx
 
 # data zip file
 data/CoMix_nl.zip
