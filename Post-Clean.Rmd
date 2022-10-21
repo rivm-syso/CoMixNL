@@ -32,7 +32,7 @@ Text
 
 ```{r}
 participant_common <- read_csv(
-  file = "CoMix_nl_participant_common.csv",
+  file = "data/CoMix_nl_participant_common.csv",
   col_types = cols(
     .default = col_character(),
     part_id = col_integer(),
@@ -40,7 +40,7 @@ participant_common <- read_csv(
   )
 )
 participant_extra <- read_csv(
-  file = "CoMix_nl_participant_extra.csv",
+  file = "data/CoMix_nl_participant_extra.csv",
   col_types = cols(
     .default = col_character(),
     survey_round = col_integer(),
@@ -57,7 +57,7 @@ Text
 
 ```{r}
 contact_common <- read_csv(
-  file = "CoMix_nl_contact_common.csv",
+  file = "data/CoMix_nl_contact_common.csv",
   col_types = cols(
     .default = col_character(),
     part_id = col_integer(),
@@ -72,7 +72,7 @@ contact_common <- read_csv(
   )
 )
 contact_extra <- read_csv(
-  file = "CoMix_nl_contact_extra.csv",
+  file = "data/CoMix_nl_contact_extra.csv",
   col_types = cols(
     .default = col_character(),
     survey_round = col_integer(),
@@ -104,14 +104,14 @@ Text
 
 ```{r}
 household_common <- read_csv(
-  file = "CoMix_nl_hh_common.csv",
+  file = "data/CoMix_nl_hh_common.csv",
   col_types = cols(
     .default = col_character(),
     hh_size = col_integer()
   )
 )
 household_extra <- read_csv(
-  file = "CoMix_nl_hh_extra.csv",
+  file = "data/CoMix_nl_hh_extra.csv",
   col_types = cols(
     .default = col_character(),
     survey_round = col_integer(),
@@ -129,12 +129,7 @@ participant_data <- participant_common %>%
 contact_data <- contact_common %>%
   left_join(contact_extra, by = "cont_id") %>%
   mutate(
-    part_id = floor(part_id / 100),
-    elevated_risk_group = recode(
-      elevated_risk_group,
-      "0" = "No",
-      "1" = "Yes"
-    )
+    part_id = floor(part_id / 100)
   )
 household_data <- household_common %>%
   left_join(household_extra, by = c("hh_id", "country"))
@@ -358,20 +353,6 @@ contact_data <- contact_data %>%
     cnt_location = if_else(cnt_home == 1, "Home", cnt_location),
     cnt_location = if_else(cnt_home == 1 & cnt_household == 1, "HomeHH", cnt_location),
     cnt_location = if_else(is.na(cnt_location), "Unknown", cnt_location)
-  )
-```
-
-Text
-
-# Recode Elevated Risk
-
-Text
-
-```{r}
-participant_data <- participant_data %>%
-  mutate(
-    part_elevated_risk = coalesce(tolower(part_elevated_risk), part_high_risk),
-    part_elevated_risk = if_else(grepl("answer", part_elevated_risk), "no answer", part_elevated_risk)
   )
 ```
 
