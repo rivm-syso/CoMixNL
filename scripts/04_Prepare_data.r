@@ -52,10 +52,10 @@ participant_data <- participant_data %>%
   group_by(part_id) %>% 
   arrange(survey_round) %>% 
   # impute missing part_elevated_risk from answers in other waves, and add index of participation round 
-  mutate(risk = case_when(sum(part_elevated_risk == "no", na.rm = TRUE) > sum(part_elevated_risk == "yes", na.rm = TRUE) ~ "no",
-                          sum(part_elevated_risk == "no", na.rm = TRUE) < sum(part_elevated_risk == "yes", na.rm = TRUE) ~ "yes",
+  mutate(risk = case_when(sum(part_elevated_risk == "No", na.rm = TRUE) > sum(part_elevated_risk == "Yes", na.rm = TRUE) ~ "No",
+                          sum(part_elevated_risk == "No", na.rm = TRUE) < sum(part_elevated_risk == "Yes", na.rm = TRUE) ~ "Yes",
                           TRUE ~ NA_character_),
-         part_elevated_risk = if_else(is.na(part_elevated_risk) | part_elevated_risk == "no answer", risk, part_elevated_risk),
+         part_elevated_risk = if_else(is.na(part_elevated_risk) | part_elevated_risk == "Prefer not to answer", risk, part_elevated_risk),
          part_round = 1:n()) %>% 
   dplyr::select(-risk) %>% 
   ungroup
