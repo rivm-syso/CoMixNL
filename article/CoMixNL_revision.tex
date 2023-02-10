@@ -36,6 +36,7 @@ We categorized the number of unique contacted persons excluding household member
 \end{abstract}
 \begin{document}
 
+\raggedright
 \flushbottom
 \maketitle
 
@@ -47,11 +48,13 @@ From early 2020 onwards, the COVID-19 outbreak grew into a global pandemic, taki
 
 In the Netherlands, the first nation-wide lockdown was imposed on March 15th, 2020 involving all of the above measures. It was lifted stepwise on May 11th (partly opening of schools), June 2nd (further opening of schools, museums and terraces open a.o.) and July 6th (bars and restaurants open a.o.). The rise of the Alpha variant in winter 2020/2021 called for an even stricter lockdown including an evening curfew. The measures were relaxed from April 28th, 2021 onwards as vaccination coverages were increasing. It is not known how the change in control measures affected the number of at-risk contacts in the Dutch general population.
 
-To learn about the effect of control measures on contact behaviour, many countries set up contact surveys \cite{Zhang_2020, Latsuzbaia_2020, Quaife_2020, Backer_2021, Bosetti_2021, Feehan_2021, Tomori_2021, Drolet_2022}. The POLYMOD study \cite{Mossong_2008} served as a blueprint for these as it did for many pre-COVID-19 studies \cite{Hoang_2019}. But while these pre-COVID-19 studies aimed to measure `normal' contact behaviour, the unprecedented measures that were taken during the pandemic gave a unique opportunity to determine contact behaviour under restricted conditions. As part of a European project, the CoMix contact survey was set up in March/April 2020 in Belgium, the UK, and the Netherlands, later followed by 19 other European countries \cite{Verelst_2021}. In this contact study, participants were asked to regularly report their contact behaviour, i.e. the number of unique persons they had contact with in certain locations on the day preceding the survey day, as well as some characteristics of the contacted persons such as age and sex. Participants were asked to report only at-risk contacts, specifically face-to-face conversational contacts (within 1.5 meters) and/or physical contacts. What sets the CoMix survey apart from other contact surveys is that it uses a standardised questionnaire in multiple countries and is repeated at regular intervals in the same participants.
+To learn about the effect of control measures on contact behaviour, many countries set up contact surveys \cite{Zhang_2020, Latsuzbaia_2020, Quaife_2020, Backer_2021, Bosetti_2021, Feehan_2021, Tomori_2021, McCreesh_2021, Drolet_2022}. The POLYMOD study \cite{Mossong_2008} served as a blueprint for these as it did for many pre-COVID-19 studies \cite{Hoang_2019}. But while these pre-COVID-19 studies aimed to measure `normal' contact behaviour, the unprecedented measures that were taken during the pandemic gave a unique opportunity to determine contact behaviour under restricted conditions. Understanding contact patterns between age groups is especially important when restrictions affect age groups differently. Physical distancing measures were often aimed at reducing contacts with old or frail persons, as they have a higher chance of hospitalisation and death after infection \cite{Levin_2020, Hewitt_2020, Blomaard_2021}. During the first wave of the COVID-19 pandemic, the in-person contacts of elderly persons decreased  \cite{Freedman_2022}, and also surveys in the general population showed a substantial reduction of contacts \cite{Zhang_2020, Latsuzbaia_2020, Quaife_2020, Backer_2021, Bosetti_2021, Feehan_2021, Tomori_2021, McCreesh_2021, Drolet_2022}.
 
-At the same time the CoMix survey started, a large-scale population-based SARS-CoV-2 serosurveillance study was initiated in the Netherlands \cite{Vos_2020, Vos_2021}. This Pienter Corona (PiCo) study was repeated every 4 to 6 months in a representative sample of the Dutch population involving a few thousand participants of all ages per survey round, and is still ongoing. It also included a contact question where the participants were asked to report the number of unique persons they contacted the day before in specific age groups. An early analysis of the first two survey rounds in 2020 showed that the first lockdown decreased the number of community contacts per participant on average by 76\% compared to pre-COVID behaviour \cite{Backer_2021}. The PiCo survey rounds are too far apart to closely monitor the contact behaviour over time, but will be used to validate the CoMix survey results at certain points in time.
+As part of a European project, the CoMix contact survey was set up in March/April 2020 in Belgium, the UK, and the Netherlands, later followed by 19 other European countries \cite{Verelst_2021}. In this contact study, participants were asked to regularly report their contact behaviour, i.e. the number of unique persons they had contact with in certain locations on the day preceding the survey day, as well as some characteristics of the contacted persons such as age and sex. Participants were asked to report only at-risk contacts, specifically face-to-face conversational contacts (within 1.5 meters) and/or physical contacts. What sets the CoMix survey apart from other contact surveys is that it uses a standardised questionnaire in multiple countries and is repeated at regular intervals in the same participants.
 
-Our aim is to describe how control measures affected the contact behaviour of the Dutch general population, using the CoMix data that was collected in the Netherlands during the survey periods in 2020 and 2021. Although contacts with household members are thought to be more intensive than contacts with non-household members, they are not subject to any of the control measures. For this reason, we will focus on the number of contacts per participant outside the household because these can be affected by the control measures. As a validation, the results are compared to four survey rounds of the PiCo survey that coincided with the CoMix study periods.
+At the same time the CoMix survey started, a large-scale population-based SARS-CoV-2 serosurveillance study was initiated in the Netherlands \cite{Vos_2020, Vos_2021}. This Pienter Corona (PiCo) study was repeated every 4 to 6 months in a representative sample of the Dutch population involving a few thousand participants of all ages per survey round, and is still ongoing. It also included a contact question where the participants were asked to report the number of unique persons they contacted the day before in specific age groups. An early analysis of the first two survey rounds in 2020 showed that the first lockdown decreased the number of community contacts per participant on average by 76\% compared to pre-COVID behaviour \cite{Backer_2021}. The PiCo survey rounds are too far apart to closely monitor the contact behaviour over time, but will be used to compare to the CoMix survey results at certain points in time.
+
+Our aim is to describe how control measures affected the contact behaviour of the Dutch general population, using the CoMix data that was collected in the Netherlands during the survey periods in 2020 and 2021. Although contacts with household members are thought to be more intensive than contacts with non-household members, they are not subject to any of the control measures. For this reason, we will focus on the number of contacts per participant outside the household because these can be affected by the control measures. The results are compared to four survey rounds of the PiCo survey that coincided with the CoMix study periods.
 
 
 \section*{Methods}
@@ -81,7 +84,7 @@ Pr(\mathrm{activity} \leq l) = \: \Phi[ & \theta_l - (\beta_\mathrm{id} + \beta_
 
 where $\Phi$ is the logistic function, $\theta_l$ are the thresholds for the activity levels $l$, $\beta_\mathrm{id}$ are the random intercepts and the $s()$ function indicates that splines are used. The fits are assessed by explained deviance and by comparing the fitted activity levels to the observations. 
 
-Next, the fitted results are used in a synthetic population that has the same size as the study population, but reflects the general population, with respect to age\cite{CBS_2021}, risk status\cite{Nivel_2021} and vaccination status\cite{RIVM_2022} at each day of the study periods. Participant id's are sampled with replacement from the study population, and participant round is set to 1 for each day during the study period. 200 parameter sets are sampled from the estimated model parameters, and combined with 200 synthetic populations, to capture both the uncertainty of the model parameters and the uncertainty caused by the sample size of the study population. As a validation, the predicted activity levels of the synthetic population are compared to the activity levels measured in PiCo survey rounds 1 (Apr 2020), 2 (Jun 2020), 4 (Feb 2021) and 5 (Jun 2021).
+Next, the fitted results are used in a synthetic population that has the same size as the study population, but reflects the general population, with respect to age\cite{CBS_2021}, risk status\cite{Nivel_2021} and vaccination status\cite{RIVM_2022} at each day of the study periods. Participant id's are sampled with replacement from the study population, and participant round is set to 1 for each day during the study period. 200 parameter sets are sampled from the estimated model parameters, and combined with 200 synthetic populations, to capture both the uncertainty of the model parameters and the uncertainty caused by the sample size of the study population. The predicted activity levels of the synthetic population are compared to the activity levels measured in PiCo survey rounds 1 (Apr 2020), 2 (Jun 2020), 4 (Feb 2021) and 5 (Jun 2021).
 
 All analyses are performed in R version 4.1.3 \cite{R_2022} using the \textit{mgcv} package \cite{Wood_2017} with family \textit{ocat} for ordered categorical variables. Code is available on Github \cite{Github_RIVM}, and data is published on Zenodo \cite{Zenodo_2022} in the standardised format of \textit{socialcontactdata.org}.
 
@@ -89,22 +92,29 @@ All analyses are performed in R version 4.1.3 \cite{R_2022} using the \textit{mg
 
 \subsection*{Study population}
 
-In total, 1659 participants were included in the 2020 series, and 2514 participants in the 2021 series. Participants were equally distributed over men and women in 2020, while female participants were slightly overrepresented in 2021 (Tab. \ref{tab:part}). Household sizes of 2 persons were most common (Tab. \ref{tab:part}). Each series started with a target population of 1500 participants, and the number of participants declined in each survey round (Tab. S1, Fig. S1). In 2020 the drop-out rate was on average 4\% per round in the oldest age group and 14\% in the youngest age group; in 2021 drop out rates were more comparable for all age groups (Fig. \ref{fig:part}A).
+In total, 1659 participants were included in the 2020 series, and 2514 participants in the 2021 series. Participants were equally distributed over men and women in 2020, while female participants were slightly overrepresented in 2021 (Tab. \ref{tab:part}). Household sizes of 2 persons were most common (Tab. \ref{tab:part}). Each series started with a target population of 1500 participants, and the number of participants declined in each survey round (Supplementary Tab. S1, Supplementary Fig. S1). In 2020 the drop-out rate was on average 4\% per round in the oldest age group and 14\% in the youngest age group; in 2021 drop out rates were more comparable for all age groups (Fig. \ref{fig:part}A).
+
+[Tab. \ref{tab:part} about here]
+
+[Fig. \ref{fig:part} about here]
 
 The fraction of self-reported high risk adult participants was higher than in the general population, especially in the 2020 series (Fig. \ref{fig:part}B). The vaccination coverage of the study population increased over time largely in agreement with the general population (Fig. \ref{fig:part}C). The participants in the age groups of 18-34 years achieved a higher vaccination coverage at an earlier stage than the general population. The participants in the age group of 65 years and older lagged behind the general population.
-
 
 \subsection*{Contact behaviour}
 
 The distribution of the number of contacts reveals that the adult and elderly age groups in both series exhibit heavy tails (Fig. \ref{fig:powerlaw}). The fitted lines on log-log scale (inset in Fig. \ref{fig:powerlaw}) for these four groups have slopes ranging from -1.1 to -1.5. These values indicate that the estimates of the sample mean are stable but the estimates of the sample variance are not \cite{Tagore_2015}, which makes the choice to model the number of contacts with a parametric distribution less obvious. The number of contacts in the child age group lacks a heavy tail, because of the abundance of children reporting contact numbers in the range of a class size. The numbers of contacts per participant per round are categorized in activity levels of 0, 1, 2, 3-4, 5-9, $\geq$ 10 contacts per participant per round.
 
-Separate analyses are carried out for the different series and age groups. Of the fixed effects only the weekends significantly reduces the activity levels in all analyses (Tab. S2). For the youngest age group, also holidays significantly reduce the activity levels as they also include school holidays. Activity levels increase over time during the two series, indicating that the underlying number of non-household contacts per participant increases (Fig. S2), corresponding to the lifting of COVID-19 control measures. In all analyses the activity levels decrease with participant round. This means that participants tend to report fewer contacts the more often they participate. This is especially the case for the first few rounds, after which the effect stabilises.
+[Fig. \ref{fig:powerlaw} about here]
 
-The deviance explained by this model ranges from 14\% to 19\% (Tab. S2). Using these model results the fitted activity levels in the study population are compared to the data (Fig. \ref{fig:studypop}). With the exception of some rounds, notably the first round in 2020 and the fourth round in 2021, the fitted activity levels agree well with the observed activity levels.
+Separate analyses are carried out for the different series and age groups. Of the fixed effects only the weekends significantly reduces the activity levels in all analyses (Supplementary Tab. S2). For the youngest age group, also holidays significantly reduce the activity levels as they also include school holidays. Activity levels increase over time during the two series, indicating that the underlying number of non-household contacts per participant increases (Supplementary Fig. S2), corresponding to the lifting of COVID-19 control measures. In all analyses the activity levels decrease with participant round. This means that participants tend to report fewer contacts the more often they participate. This is especially the case for the first few rounds, after which the effect stabilises.
+
+The deviance explained by this model ranges from 14\% to 19\% (Supplementary Tab. S2). Using these model results the fitted activity levels in the study population are compared to the data (Fig. \ref{fig:studypop}). With the exception of some rounds, notably the first round in 2020 and the fourth round in 2021, the fitted activity levels agree well with the observed activity levels.
+
+[Fig. \ref{fig:studypop} about here]
 
 Next, the model results are extrapolated to the general population over the full course of the study periods (Fig. \ref{fig:genpop}). The saw-tooth pattern is caused by the weekend effect, which is largest for the 0-17 age group. Over time activity levels generally increase in all age groups in both series (Fig. \ref{fig:genpop}). As a comparison, the results of the PiCo study \cite{Backer_2021} are plotted, of which rounds 1, 2, 4 and 5 fell within the CoMix study periods. Participants of the PiCo study reported higher activity levels than CoMix participants. The discrepancy is largest for the 0-17 age group, whereas the 65+ age group all but agrees with the PiCo study results.
 
-
+[Fig. \ref{fig:genpop} about here]
 
 \section*{Discussion}
 
@@ -112,13 +122,15 @@ In this paper we showed how the number of at-risk contacts per person outside th
 
 These findings are consistent with those found in the PiCo studies, even though the activity levels reported in the PiCo data are higher than in the CoMix data. The two studies differed in how the participants report their contacts. In the CoMix study contacts were reported individually with a lot of detail on location, duration, distance from contact, protection measures, etc. Also for the group contacts at work, school, or other places additional details were requested. In the PiCo study a participant reported the total number of contacts in specific age classes, which made reporting many contacts easier. This may partly explain the higher activity levels found in the PiCo study.
 
-Participants tend to report fewer contacts when they participate in more rounds. This fatigue effect is also seen in the CoMix data of other countries, but the fatigue effect in the Netherlands is found to be extreme compared to these \cite{Wong_2022b}. A complicating factor in interpreting the fatigue effect is that the participant rounds are not equally distributed over the study period. Most participants have their first participant round in survey round 1 in 2020, and survey rounds 1 and 11 in 2021, due to the study design. In an alternative design used in the UK, the study population is supplemented to reach the target size in every survey round, which leads to a better distibution of the participant rounds over the survey rounds \cite{Gimma_2022}. Also, a lower frequency of the survey rounds may lead to a smaller fatigue effect, but this would conflict with the aim of monitoring contact behaviour close to real time.
+We defined six activity levels and used ordinal regression to describe the contact behaviour of the study population. Other studies have used parametric distributions instead, with a maximum number of contacts \cite{Gimma_2022}. This maximum is necessary to yield the same trends in contact behaviour as our results (Supplementary Fig. S3) but also disregards the heavy tails of the distribution of number of contacts. For robustness we also reanalysed the data without distinction between age groups, but using participant age as a covariable over the full age range. Although not markedly different from the main results  (Supplementary Fig. S4), this analysis fails to capture any interactions between age group and calendar time.
+
+Participants tend to report fewer contacts when they participate in more rounds. This fatigue effect is also seen in the CoMix data of other countries, but the fatigue effect in the Netherlands is found to be extreme compared to these \cite{Wong_2022b}. A complicating factor in interpreting the fatigue effect is that the participant rounds are not equally distributed over the study period. Most participants have their first participant round in survey round 1 in 2020, and survey rounds 1 and 11 in 2021, due to the study design. In an alternative design used in the UK, the study population is supplemented to reach the target size in every survey round, which leads to a better distribution of the participant rounds over the survey rounds \cite{Gimma_2022}. Also, a lower frequency of the survey rounds may lead to a smaller fatigue effect, but this would conflict with the aim of monitoring contact behaviour close to real time.
 
 To extrapolate our findings to the general population, the fatigue effect needed to be corrected for, and differences between the study population and the general population had to be taken into account. Particularly the age distribution of the study participants varied over the survey rounds, because drop-out rates differed between age groups. Also vaccination and risk status of the participants did not always reflect the vaccination and risk status in the general population. The participants in the age groups of 18-34 years achieved a higher vaccination coverage at an earlier stage than the general population. This could indicate that these groups contained relatively many health care workers, who were vaccinated with priority and may have a higher willingness to get vaccinated. The participants in the age group of 65 years and older lagged behind the general population, because the study population probably did not contain many care home residents who were vaccinated with priority. The fraction of high risk adult participants was higher than in the general population. The risk status was reported by participants themselves and compared to the fraction of the population that is invited for the annual influenza vaccination. Although the high risk definition is the same for both populations, participants may have assessed their risk status differently than their GP would. This is supported by the finding that the high risk participants are mainly overrepresented in the highest age groups in 2020 (Fig. \ref{fig:part}B, Tab. \ref{tab:part}) when risks may have been perceived to be higher than in 2021 when mass-vaccination against COVID-19 was implemented. This would explain the discrepancy, but it cannot be excluded that they were really high risk participants. 
 
-Our findings suggest that the contact data collected in the CoMix survey describe trends in contact behaviour in the general population. As such it can be useful in monitoring the effect of control measures that are aimed at contact reduction \cite{Coletti_2020, Jarvis_2021, Gimma_2022}, describe determinants for contact behaviour \cite{Wambua_2022, Wong_2022a}, or serve as input for infectious disease models \cite{Coletti_2021, Munday_2021, Franco_2022}. These results can help guide policy in future waves of COVID-19 or other emerging respiratory diseases by monitoring the interaction between contact behaviour, control measures and complicance, and emphasize that contact surveys such as the CoMix study are indispensable for providing a quantitative basis to public health policy.
+Our findings suggest that the contact data collected in the CoMix survey describe trends in contact behaviour in the general population. As such it can be useful in near real-time monitoring of the transmission potential \cite{Jarvis_2021, Gimma_2022}, determining the effect of control measures that are aimed at contact reduction \cite{Coletti_2020, Munday_2021}, describing determinants for contact behaviour \cite{Wambua_2022, Wong_2022a}, or serving as input for infectious disease models \cite{Coletti_2021, Franco_2022}. These results can help guide policy in future waves of COVID-19 or other emerging respiratory diseases by monitoring the interaction between contact behaviour, control measures and compliance, and emphasize that contact surveys such as the CoMix study are indispensable for providing a quantitative basis to public health policy.
 
-\section*{Data availability} The datasets generated and/or analysed during the current study are available in the Zenodo repository (DOI: https://dx.doi.org/10.1038/s41598-020-78540-7)
+\section*{Data availability} The datasets analysed in the current study are available in the Zenodo repository (https://doi.org/10.5281/zenodo.4790347) \cite{Zenodo_2022} under CC BY 4.0 license.
 
 \bibliography{references}
 
@@ -133,6 +145,42 @@ P.B, J.E., N.H. and J.W. initiated the study; N.H., P.B., C.J., K.v.Z., J.E. des
 \section*{Ethics statement}
 
 \textbf{Competing interests} The authors declare no competing interests.
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/characteristics_studypopulation.pdf}
+\caption{Characteristics of study population, compared to general population. \textbf{a} Number of participants included per survey round in the 2020 and 2021 series, by age group. After 10 survey rounds in May 2021, the study population was supplemented to meet the target numbers of the first survey round again.  \textbf{b} The fraction of high risk participants of the 2020 and 2021 series (points with 95\% confidence interval), and of the general population \cite{Nivel_2021} (bars). Only participants with unambiguous risk status are included. \textbf{c} Vaccination coverage in 2021 per age group of the study population (points with 95\% confidence interval) and of the general population \cite{RIVM_2022} (line). The dashed line denotes the average date when non-risk groups were invited for vaccination. The dashed line for the 55-64 age group is in fact the average for 55-59 year olds, as 60-64 year olds were invited by their general practitioner. }
+\label{fig:part}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/distribution_contacts.pdf}
+\caption{Distribution of number of contacts per participant per round excluding household members. Distribution by series (line type) and age group (color), with complementary cumulative distribution function on y-axis. The inset shows the same plot on log-log scale.}
+\label{fig:powerlaw}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/fit_studypopulation_cat6.pdf}
+\caption{Fitted and observed activity levels over time by series (columns) and age group (rows). Activity levels are shown as the fraction of participants that report more than a certain number of non-household contacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per participant. The model fits per round are shown by the median (lines) and 95\% interval (shaded), from the first to last participation date of that survey round. The observed activity levels per round (open circles) are placed at the mean participation date of that survey round. Holidays and school holiday periods are shaded in grey.}
+\label{fig:studypop}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/prediction_generalpopulation_cat6.pdf}
+\caption{Predicted activity levels over time by series (columns) and age group (rows) for the general population. Activity levels are shown as the fraction of the population that has more than a certain number of non-householdcontacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per person. The model predictions are shown by the median (lines) and 95\% interval (shaded). The activity levels observed in the contact survey of the independent PiCo study are shown for comparison per round at the mean participation date (points), with bootstrapped 95\% confidence intervals. Holidays and school holiday periods are shaded in grey.}
+\label{fig:genpop}
+\end{figure}
 
 \clearpage
 
@@ -199,44 +247,6 @@ P.B, J.E., N.H. and J.W. initiated the study; N.H., P.B., C.J., K.v.Z., J.E. des
  \protect\linebreak \textsuperscript{b} Percentage of risk status in study population only calculated for participants with unambiguous risk status to allow comparison with general population.
 \protect\linebreak \textsuperscript{c} Expected household size distribution per Dutch citizen, based on Dutch households consisting of one (38\%), two (33\%), three (12\%), four (12\%) and five or more (5\%) persons \cite{Backer_2021}}
 \end{table}
-
-
-
-\clearpage
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{../figures/characteristics_studypopulation.png}
-\caption{Characteristics of study population, compared to general population. \textbf{A} Number of participants included per survey round in the 2020 and 2021 series, by age group. After 10 survey rounds in May 2021, the study population was supplemented to meet the target numbers of the first survey round again.  \textbf{B} The fraction of high risk participants of the 2020 and 2021 series (points with 95\% confidence interval), and of the general population \cite{Nivel_2021} (bars). Only participants with unambiguous risk status are included. \textbf{C} Vaccination coverage in 2021 per age group of the study population (points with 95\% confidence interval) and of the general population \cite{RIVM_2022} (line). The dashed line denotes the average date when non-risk groups were invited for vaccination. The dashed line for the 55-64 age group is in fact the average for 55-59 year olds, as 60-64 year olds were invited by their general practitioner. }
-\label{fig:part}
-\end{figure}
-
-\clearpage
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{../figures/distribution_contacts.png}
-\caption{Distribution of number of contacts per participant per round excluding household members, by series (line type) and age group (color), with complementary cumulative distribution function on y-axis. The inset shows the same plot on log-log scale.}
-\label{fig:powerlaw}
-\end{figure}
-
-\clearpage
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{../figures/fit_studypopulation_cat6.png}
-\caption{Fitted and observed activity levels over time by series (columns) and age group (rows). Activity levels are shown as the fraction of participants that report more than a certain number of non-household contacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per participant. The model fits per round are shown by the median (lines) and 95\% interval (shaded), from the first to last participation date of that survey round. The observed activity levels per round (open circles) are placed at the mean participation date of that survey round. Holidays and school holiday periods are shaded in grey.}
-\label{fig:studypop}
-\end{figure}
-
-\clearpage
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{../figures/prediction_generalpopulation_cat6.png}
-\caption{Predicted activity levels over time by series (columns) and age group (rows) for the general population. Activity levels are shown as the fraction of the population that has more than a certain number of non-householdcontacts per day. With five limits (>0, >1, >2, >4 and >9) six activity levels are defined, e.g. the fraction between the limits of >2 and >4 is the activity level that represents 3 or 4 contacts per person. The model predictions are shown by the median (lines) and 95\% interval (shaded). The activity levels observed in the contact survey of the independent PiCo study are shown for comparison per round at the mean participation date (points), with bootstrapped 95\% confidence intervals. Holidays and school holiday periods are shaded in grey.}
-\label{fig:genpop}
-\end{figure}
 
 \clearpage
 

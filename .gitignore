@@ -5,8 +5,11 @@ results/fit*.rds
 article/CoMixNL_paper_*.pdf
 article/CoMixNL_paper_*.docx
 
-# data zip file
-data/CoMix_nl.zip
+# submission files to SciRep
+SciRep/*
+
+# all zip files
+data/*.zip
 
 # History files
 .Rhistory
