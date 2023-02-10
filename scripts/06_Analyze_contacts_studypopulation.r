@@ -114,10 +114,10 @@ p <- number_of_contacts_by_wave_and_participant %>%
              lty = series %>% fct_rev)) +
   geom_line() +
   theme_light() +
-  labs(x = "number of non-household contacts",
-       y = "fraction of participants reporting more contacts",
-       lty = " series",
-       col = "age group")
+  labs(x = "Number of non-household contacts",
+       y = "Fraction of participants reporting more contacts",
+       lty = "Series",
+       col = "Age group")
 
 p_inset <- number_of_contacts_by_wave_and_participant %>% 
   group_by(part_age_group, series) %>% 
@@ -143,8 +143,8 @@ p_inset <- number_of_contacts_by_wave_and_participant %>%
 
 ggdraw(p) + draw_plot(p_inset, x = 0.18, y = 0.2, width = 0.65, height = 0.75)
 
-ggsave(filename = paste0("./figures/distribution_contacts.png"), 
-       width = 7, height = 5, dpi = 300)
+ggsave(filename = paste0("./figures/distribution_contacts.pdf"), 
+       width = 7, height = 5)
 
 ########### analysis of number of contacts #####################################
 
@@ -267,16 +267,17 @@ par(mfrow = c(1, 1))
 
 
 ggplot(data = spline_data %>% 
-         mutate(what = case_when(what == "date_trans" ~ "days since 16 Apr 2020",
-                                 what == "part_age" ~ "participant age",
-                                 TRUE ~ "participant round")),
+         mutate(what = case_when(what == "date_trans" ~ "Days since 16 Apr 2020",
+                                 what == "part_age" ~ "Participant age",
+                                 TRUE ~ "Participant round")),
        aes(x = x, y = fit)) +
   geom_line() +
   geom_line(aes(y = fit + se), lty = 2) +
   geom_line(aes(y = fit - se), lty = 2) +
   theme_light() +
-  labs(x = NULL,
-       y = "effect") +
+  labs(subtitle = "Non-stationary fixed effects",
+       x = NULL,
+       y = "Effect") +
   theme(strip.background = element_rect(fill = "white"),
         strip.text = element_text(colour = 1),
         strip.placement = "outside") +
@@ -285,5 +286,5 @@ ggplot(data = spline_data %>%
              scales = "free_x",
              switch = "x")
 
-ggsave(filename = paste0("./figures/results_splines.png"), 
-       width = 10, height = 6, dpi = 300)
+ggsave(filename = paste0("./figures/results_splines.pdf"), 
+       width = 7, height = 5)

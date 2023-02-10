@@ -127,17 +127,19 @@ ggplot(data = pred_data %>%
                  ymin = 1-lower,
                  ymax = 1-upper,
                  shape = "PiCo survey"),
-             size = 0.4) +
-  scale_shape_manual('', values = 19) +
+             size = 0.4,
+             col = rgb(0.3,0.3,0.3),
+             stroke = 0.6) +
+  scale_shape_manual('', values = 21) +
   scale_x_date(breaks = "month",
                date_labels = "%b",
                expand = c(0, 0)) +
   scale_y_continuous(limits = c(0, 0.99),
                      expand = c(0, 0)) +
   labs(x = NULL,
-       y = "fraction of population",
-       colour = "number of contacts",
-       fill = "number of contacts") +
+       y = "Fraction of population",
+       colour = "Number of contacts",
+       fill = "Number of contacts") +
   guides(colour = guide_legend(order = 1),
          fill = guide_legend(order = 1)) +
   theme_light() +
@@ -152,7 +154,7 @@ ggplot(data = pred_data %>%
              switch = "x")
 
 
-ggsave(filename = paste0("./figures/prediction_generalpopulation_cat6.png"), width = 10, height = 6, dpi = 300)
+ggsave(filename = paste0("./figures/prediction_generalpopulation_cat6.pdf"), width = 7, height = 5)
 
 
 

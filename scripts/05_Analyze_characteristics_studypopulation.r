@@ -60,8 +60,8 @@ p_resp <- ggplot(data = number_of_respondents_per_wave_per_age,
   ) +
   labs(
     x = NULL,
-    y = "number of participants",
-    col = "age group"
+    y = "Number of participants",
+    col = "Age group"
   ) +
   theme_light() +
   theme(
@@ -114,8 +114,10 @@ high_risk_population <- participant_characteristics %>%
 p_risk <- ggplot(data = high_risk_population,
                  aes(x = age_group, y = high_risk_general, fill = age_group, group = 1)) +
   geom_bar(stat = "identity", 
-           aes(col = "general population")) +
-  geom_pointrange(aes(y = high_risk_mean, ymin = high_risk_lower, ymax = high_risk_upper, group = 1, shape = "study population"),
+           aes(col = "General population")) +
+  geom_pointrange(aes(y = high_risk_mean, ymin = high_risk_lower, ymax = high_risk_upper, group = 1, shape = "Study population"),
+                  stroke = 0.8,
+                  lwd = 0.8,
                   col = 1) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_shape_manual('', values = 21) +
@@ -129,8 +131,8 @@ p_risk <- ggplot(data = high_risk_population,
         strip.background = element_rect(fill = "white"),
         strip.text = element_text(colour = 1)) +
   guides(fill = "none") +
-  labs(x = "age group",
-       y = "high risk fraction") +
+  labs(x = "Age group",
+       y = "High risk fraction") +
   facet_wrap(facets = vars(series),
              nrow = 1,
              scale = "free_x")
@@ -171,7 +173,7 @@ p_vacc <- ggplot(
                minor_breaks = "month",
                date_labels = "%b") +
   labs(x = "2021",
-       y = "vaccination coverage") +
+       y = "Vaccination coverage") +
   theme_light() +
   theme(strip.background = element_rect(fill = "white"),
         strip.text = element_text(colour = 1)) +
@@ -191,9 +193,9 @@ inset_vacc <- ggplot() +
   geom_pointrange(data = tibble(x = 1, y = 6, ymin = 5.5, ymax = 6.5),
                   aes(x = x, y = y, ymin = ymin, ymax = ymax)) +
   geom_text(data = tibble(x = rep(3, 3), y = c(2, 4, 6), 
-                          label = c("mean vaccination start date\nfor non-risk groups",
-                                    "mean vaccination coverage\nfor general population",
-                                    "mean vaccination coverage (and 95% CI)\nfor study population")),
+                          label = c("Mean vaccination start date\nfor non-risk groups",
+                                    "Mean vaccination coverage\nfor general population",
+                                    "Mean vaccination coverage (and 95% CI)\nfor study population")),
             aes(x = x, y = y, label = label), 
             hjust = 0, 
             size = 3) +
@@ -208,12 +210,12 @@ pAB <- plot_grid(p_resp,
           p_risk,
           rel_widths = c(3,2),
           nrow = 1,
-          labels = c("A","B"),
+          labels = c("a","b"),
           label_size = 18,
           label_fontfamily = "sans")
 
 pC <- plot_grid(ggdraw(p_vacc) + draw_plot(inset_vacc, 2/3, 0, 1/3, 1/3),
-                labels = c("C"),
+                labels = c("c"),
                 label_size = 18,
                 label_fontfamily = "sans")
 
@@ -223,9 +225,8 @@ plot_grid(pAB,
           ncol = 1)
 
 
-ggsave(filename = paste0("./figures/characteristics_studypopulation.png"), 
-       width = 12, height = 9, dpi = 300)
-
+ggsave(filename = paste0("./figures/characteristics_studypopulation.pdf"), 
+       width = 10, height = 8)
 
 
 ######## Figure S1: Number of participants by survey round and participant round ######## 
@@ -241,9 +242,10 @@ participant_data %>%
   scale_fill_viridis_c(
     trans = "log",
     breaks = c(1, 10, 100, 1000)) +
-  labs(x = "survey round",
-       y = "participant round",
-       fill = "number of\nparticipants") +
+  labs(subtitle = "Number of participants by survey round and participant round",
+    x = "Survey round",
+       y = "Participant round",
+       fill = "Number of\nparticipants") +
   theme_light() +
   theme(strip.background = element_rect(fill = "white"),
         strip.text = element_text(colour = 1)) +
@@ -251,7 +253,7 @@ participant_data %>%
              scales = "free_x",
              space = "free")
 
-ggsave(filename = paste0("./figures/participant_rounds.png"), width = 7, height = 4, dpi = 300)
+ggsave(filename = paste0("./figures/participant_rounds.pdf"), width = 7, height = 4)
 
 
 ######## Table S1: Number of participants per survey round of study series in 2020 and 2021 in eight age groups ############

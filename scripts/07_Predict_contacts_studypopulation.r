@@ -127,9 +127,9 @@ ggplot(data = plot_data,
             alpha = 0.3,
             inherit.aes = FALSE) +
   geom_rect(aes(xmin = date_round_min, xmax = date_round_max), alpha = 0.3, col = NA) +
-  geom_segment(aes(linetype = "fitted")) +
+  geom_segment(aes(linetype = "Fitted")) +
   scale_linetype_manual('', values = "solid")+
-  geom_point(aes(x = date_round, y = sum_obs, col = factor(activity), shape = "observed")) +
+  geom_point(aes(x = date_round, y = sum_obs, col = factor(activity), shape = "Observed")) +
   scale_shape_manual('', values = 1) +
   scale_x_date(breaks = "month",
                date_labels = "%b",
@@ -137,9 +137,9 @@ ggplot(data = plot_data,
   scale_y_continuous(limits = c(0, 0.99),
                      expand = c(0, 0)) +
   labs(x = NULL,
-       y = "fraction of participants",
-       colour = "number of contacts",
-       fill = "number of contacts") +
+       y = "Fraction of participants",
+       colour = "Number of contacts",
+       fill = "Number of contacts") +
   guides(colour = guide_legend(order = 1),
          fill = guide_legend(order = 1)) +
   theme_light() +
@@ -153,5 +153,5 @@ ggplot(data = plot_data,
              space = "free",
              switch = "x")
 
-ggsave(filename = paste0("./figures/fit_studypopulation_cat6.png"), width = 10, height = 6, dpi = 300)
+ggsave(filename = paste0("./figures/fit_studypopulation_cat6.pdf"), width = 7, height = 5)
 
